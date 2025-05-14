@@ -206,3 +206,23 @@ pub struct NumberFormat {
     /// Text section format (optional)
     pub text_section: Option<FormatSection>,
 }
+
+/// Locale-specific settings for number formatting.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LocaleSettings {
+    /// Character to use for the decimal point.
+    pub decimal_point: char,
+    /// Character to use for the thousands separator.
+    pub thousands_separator: char,
+    // currency_symbol: String, // Future addition
+    // grouping: Vec<usize>, // Future addition for irregular grouping like Indian numbering
+}
+
+impl Default for LocaleSettings {
+    fn default() -> Self {
+        LocaleSettings {
+            decimal_point: '.',
+            thousands_separator: ',',
+        }
+    }
+}

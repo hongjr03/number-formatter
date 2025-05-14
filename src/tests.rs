@@ -101,7 +101,7 @@ fn test_all_sections() {
 fn test_date_format_month_minute() {
     let result = parse_number_format("mmm d, yyyy h:mm AM/PM").unwrap();
     let tokens = result.positive_section.tokens;
-    
+
     assert_eq!(tokens[0], FormatToken::MonthAbbr); // mmm
 
     assert_eq!(
@@ -274,12 +274,210 @@ fn exponential_format_tokens() {
 
 #[test]
 fn test_main() {
-    match parse_number_format("#,##0.00;[Red]-#,##0.00;\"Zero\";@\" Symbol\"") {
+    match parse_number_format("#,##0.00;[>=100][Magenta][s].00;\"Zero\";@\" Symbol\"") {
         Ok(parsed_format) => {
             println!("{:#?}", parsed_format);
         }
         Err(e) => {
             eprintln!("Error parsing format: {}", e);
         }
+    }
+}
+
+#[cfg(test)]
+mod formatter_tests {
+    use crate::types::LocaleSettings;
+    use crate::{format_number, parse_number_format};
+
+    #[test]
+    fn test_basic_format() {
+        let format = parse_number_format("0.00").unwrap();
+        let locale = LocaleSettings::default();
+        assert_eq!(format_number(123.456, &format, &locale), "123.46");
+        assert_eq!(format_number(0.789, &format, &locale), "0.79");
+    }
+
+    #[test]
+    fn test_negative_format() {
+        let format = parse_number_format("0.00;-0.00").unwrap();
+        let locale = LocaleSettings::default();
+        assert_eq!(format_number(123.456, &format, &locale), "123.46");
+        assert_eq!(format_number(-123.456, &format, &locale), "-123.46");
+    }
+
+    #[test]
+    fn test_digit_placeholders() {
+        let format = parse_number_format("#0.0#").unwrap();
+        let locale = LocaleSettings::default();
+        assert_eq!(format_number(123.456, &format, &locale), "123.46");
+        assert_eq!(format_number(123.4, &format, &locale), "123.4");
+        assert_eq!(format_number(0.456, &format, &locale), "0.46");
+    }
+
+    #[test]
+    fn test_percent_format() {
+        let format = parse_number_format("0%").unwrap();
+        let locale = LocaleSettings::default();
+        assert_eq!(format_number(0.12, &format, &locale), "12%");
+    }
+
+    #[test]
+    fn test_large_integers() {
+        let format = parse_number_format("0.00").unwrap();
+        let locale = LocaleSettings::default();
+        assert_eq!(format_number(1234567.89, &format, &locale), "1234567.89");
+
+        let format2 = parse_number_format("0").unwrap();
+        assert_eq!(format_number(12345.0, &format2, &locale), "12345");
+    }
+
+    #[test]
+    fn test_rounding() {
+        let format = parse_number_format("0.0").unwrap();
+        let locale = LocaleSettings::default();
+        assert_eq!(format_number(0.04, &format, &locale), "0.0");
+        assert_eq!(format_number(0.05, &format, &locale), "0.1");
+        assert_eq!(format_number(0.95, &format, &locale), "1.0");
+
+        let format2 = parse_number_format("0.00").unwrap();
+        assert_eq!(format_number(0.994, &format2, &locale), "0.99");
+        assert_eq!(format_number(0.995, &format2, &locale), "1.00");
+    }
+
+    #[test]
+    fn test_zero_format() {
+        let format = parse_number_format("0.00;-0.00;\"零\"").unwrap();
+        let locale = LocaleSettings::default();
+        assert_eq!(format_number(0.0, &format, &locale), "零");
+    }
+
+    #[test]
+    fn test_conditional_formats() {
+        let format = parse_number_format("[>100]\"大数字\"").unwrap();
+        let locale = LocaleSettings::default();
+        assert_eq!(format_number(150.0, &format, &locale), "大数字");
+
+        let format2 = parse_number_format("[<=100]\"小数字\"").unwrap();
+        assert_eq!(format_number(50.0, &format2, &locale), "小数字");
+    }
+
+    #[test]
+    fn test_thousands_separator_default_locale() {
+        let format = parse_number_format("#,##0.00").unwrap();
+        let locale = LocaleSettings::default();
+        assert_eq!(format_number(1234567.89, &format, &locale), "1,234,567.89");
+        assert_eq!(format_number(1234.56, &format, &locale), "1,234.56");
+        assert_eq!(format_number(123.45, &format, &locale), "123.45");
+        assert_eq!(format_number(0.12, &format, &locale), "0.12");
+        assert_eq!(format_number(-12345.67, &format, &locale), "-12,345.67");
+    }
+
+    #[test]
+    fn test_thousands_separator_localized() {
+        let format = parse_number_format("#,##0.00").unwrap();
+        let custom_locale = LocaleSettings {
+            decimal_point: ',',
+            thousands_separator: '.',
+        };
+        assert_eq!(
+            format_number(1234567.89, &format, &custom_locale),
+            "1.234.567,89"
+        );
+        assert_eq!(
+            format_number(-12345.67, &format, &custom_locale),
+            "-12.345,67"
+        );
+
+        let underscore_locale = LocaleSettings {
+            decimal_point: '.',
+            thousands_separator: '_',
+        };
+        assert_eq!(
+            format_number(1234567.89, &format, &underscore_locale),
+            "1_234_567.89"
+        );
+    }
+
+    #[test]
+    fn test_no_thousands_separator_if_format_lacks_comma() {
+        let format = parse_number_format("0.00").unwrap();
+        let locale_with_separator = LocaleSettings {
+            decimal_point: '.',
+            thousands_separator: '_',
+        };
+        assert_eq!(
+            format_number(12345.67, &format, &locale_with_separator),
+            "12345.67"
+        );
+
+        let format_hash = parse_number_format("###0.00").unwrap();
+        assert_eq!(
+            format_number(12345.67, &format_hash, &locale_with_separator),
+            "12345.67"
+        );
+    }
+
+    #[test]
+    fn test_different_digit_placeholders() {
+        let format1 = parse_number_format("###0.0#").unwrap();
+        let format2 = parse_number_format("0000.0#").unwrap();
+        let format3 = parse_number_format("???0.0#").unwrap();
+        let locale = LocaleSettings::default();
+
+        assert_eq!(format_number(123.45, &format1, &locale), "123.45");
+        assert_eq!(format_number(123.45, &format2, &locale), "0123.45");
+        assert_eq!(format_number(123.45, &format3, &locale), " 123.45");
+    }
+
+    #[test]
+    fn test_parentheses_for_negative() {
+        let format = parse_number_format("0.00;(0.00)").unwrap();
+        let locale = LocaleSettings::default();
+        assert_eq!(format_number(123.45, &format, &locale), "123.45");
+        assert_eq!(format_number(-123.45, &format, &locale), "(123.45)");
+    }
+
+    #[test]
+    fn test_text_and_numbers() {
+        let format = parse_number_format("\"价格：\"0.00\" 元\"").unwrap();
+        let locale = LocaleSettings::default();
+        assert_eq!(format_number(123.45, &format, &locale), "价格：123.45 元");
+    }
+
+    #[test]
+    fn test_exponential_format() {
+        let format = parse_number_format("0.00E+00").unwrap();
+        let locale = LocaleSettings::default();
+        assert_eq!(format_number(12345.67, &format, &locale), "1.23E+04");
+        assert_eq!(format_number(0.00012345, &format, &locale), "1.23E-04");
+    }
+
+    #[test]
+    fn test_edge_cases() {
+        let format = parse_number_format("0.00").unwrap();
+        let locale = LocaleSettings::default();
+        assert_eq!(
+            format_number(1.0e18, &format, &locale),
+            "1000000000000000000.00"
+        );
+        assert_eq!(format_number(1.0e-11, &format, &locale), "0.00");
+        assert_eq!(format_number(-0.0, &format, &locale), "0.00");
+    }
+
+    #[test]
+    fn test_localized_decimal_point() {
+        let format = parse_number_format("0.00").unwrap();
+        let german_locale = LocaleSettings {
+            decimal_point: ',',
+            thousands_separator: '.',
+        };
+        assert_eq!(format_number(123.456, &format, &german_locale), "123,46");
+        assert_eq!(format_number(0.789, &format, &german_locale), "0,79");
+
+        let format_exp = parse_number_format("0.00E+00").unwrap();
+        assert_eq!(
+            format_number(12345.67, &format_exp, &german_locale),
+            "1,23E+04"
+        );
     }
 }
