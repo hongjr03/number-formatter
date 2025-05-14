@@ -129,7 +129,7 @@ pub(super) fn format_value(value: f64, section: &FormatSection, locale: &LocaleS
     let final_remaining_decimal = temp_decimal_part_for_extraction.abs();
 
     // Step 6: Rounding Decision and Integer Update
-    let mut integer_to_format: i64;
+    let integer_to_format: i64;
 
     if local_decimal_places == 0 {
         integer_to_format = adjusted_value.round() as i64;

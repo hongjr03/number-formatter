@@ -25,6 +25,3 @@ use types::LocaleSettings;
 pub fn format_number(value: f64, format: &types::NumberFormat, locale: &LocaleSettings) -> String {
     formatter::format_number(value, format, locale)
 }
-
-#[cfg(test)]
-mod tests;

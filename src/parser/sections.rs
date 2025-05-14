@@ -30,9 +30,10 @@ pub fn parse_one_section(
         // Separate color token if present
         let (color_opt, mut tokens_after_color) = if !all_tokens.is_empty() {
             match &all_tokens[0] {
-                FormatToken::Color(color_type) => {
-                    (Some(color_type.clone()), all_tokens.into_iter().skip(1).collect())
-                }
+                FormatToken::Color(color_type) => (
+                    Some(color_type.clone()),
+                    all_tokens.into_iter().skip(1).collect(),
+                ),
                 _ => (None, all_tokens),
             }
         } else {
@@ -43,11 +44,14 @@ pub fn parse_one_section(
 
         // Find the index of the last numeric-related token (digit placeholders, decimal, exponential)
         let last_numeric_token_idx = tokens_after_color.iter().rposition(|t| {
-            matches!(t, FormatToken::DigitOrZero |
-                        FormatToken::DigitIfNeeded |
-                        FormatToken::DigitOrSpace |
-                        FormatToken::DecimalPoint |
-                        FormatToken::Exponential(_))
+            matches!(
+                t,
+                FormatToken::DigitOrZero
+                    | FormatToken::DigitIfNeeded
+                    | FormatToken::DigitOrSpace
+                    | FormatToken::DecimalPoint
+                    | FormatToken::Exponential(_)
+            )
         });
 
         if let Some(last_idx) = last_numeric_token_idx {
