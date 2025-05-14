@@ -87,10 +87,9 @@ fn test_thousands_separator_default_locale() {
 #[test]
 fn test_thousands_separator_localized() {
     let format = parse_number_format("#,##0.00").unwrap();
-    let custom_locale = LocaleSettings {
-        decimal_point: ',',
-        thousands_separator: '.',
-    };
+    let custom_locale = LocaleSettings::default()
+        .with_decimal_point(',')
+        .with_thousands_separator('.');
     assert_eq!(
         format_number(1234567.89, &format, &custom_locale),
         "1.234.567,89"
@@ -100,10 +99,9 @@ fn test_thousands_separator_localized() {
         "-12.345,67"
     );
 
-    let underscore_locale = LocaleSettings {
-        decimal_point: '.',
-        thousands_separator: '_',
-    };
+    let underscore_locale = LocaleSettings::default()
+        .with_decimal_point('.')
+        .with_thousands_separator('_');
     assert_eq!(
         format_number(1234567.89, &format, &underscore_locale),
         "1_234_567.89"
@@ -113,10 +111,9 @@ fn test_thousands_separator_localized() {
 #[test]
 fn test_no_thousands_separator_if_format_lacks_comma() {
     let format = parse_number_format("0.00").unwrap();
-    let locale_with_separator = LocaleSettings {
-        decimal_point: '.',
-        thousands_separator: '_',
-    };
+    let locale_with_separator = LocaleSettings::default()
+        .with_decimal_point('.')
+        .with_thousands_separator('_');
     assert_eq!(
         format_number(12345.67, &format, &locale_with_separator),
         "12345.67"
@@ -179,10 +176,9 @@ fn test_edge_cases() {
 #[test]
 fn test_localized_decimal_point() {
     let format = parse_number_format("0.00").unwrap();
-    let locale_de = LocaleSettings {
-        decimal_point: ',',
-        thousands_separator: '.',
-    };
+    let locale_de = LocaleSettings::default()
+        .with_decimal_point(',')
+        .with_thousands_separator('.');
     assert_eq!(format_number(123.45, &format, &locale_de), "123,45");
     assert_eq!(
         format_number(0.995, &parse_number_format("0.00").unwrap(), &locale_de),

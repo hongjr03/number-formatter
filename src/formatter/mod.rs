@@ -9,6 +9,7 @@
 use crate::types::{FormatSection, LocaleSettings, NumberFormat};
 
 mod core;
+mod datetime;
 mod exponential;
 mod sections;
 mod text;

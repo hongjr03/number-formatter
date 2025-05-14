@@ -68,10 +68,10 @@ pub enum FormatToken {
     SecondNum,
     /// Zero-padded second number (ss)
     SecondNumPadded,
-    /// AM/PM indicator
-    AmPm,
-    /// A/P indicator
-    AP,
+    /// AM/PM indicator, with style (uppercase/lowercase)
+    AmPm(AmPmStyle),
+    /// A/P indicator, with style (uppercase/lowercase)
+    AP(AmPmStyle),
     /// Elapsed hours [h]
     ElapsedHours,
     /// Elapsed minutes [m]
@@ -83,6 +83,15 @@ pub enum FormatToken {
     MonthOrMinute1,
     /// Double m, might be month or minute, to be determined by context
     MonthOrMinute2,
+}
+
+/// Represents the style (case) for AM/PM or A/P markers
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum AmPmStyle {
+    /// Uppercase style (AM, PM, A, P)
+    UpperCase,
+    /// Lowercase style (am, pm, a, p)
+    LowerCase,
 }
 
 /// Represents color types
@@ -111,22 +120,13 @@ impl FormatToken {
     pub fn is_numeric_or_date(&self) -> bool {
         matches!(
             self,
-            FormatToken::DigitOrZero
-                | FormatToken::DigitIfNeeded
-                | FormatToken::DigitOrSpace
-                | FormatToken::DecimalPoint
-                | FormatToken::ThousandsSeparator
-                | FormatToken::Percentage
-                | FormatToken::Exponential(_)
-                | FormatToken::YearTwoDigit
+            FormatToken::YearTwoDigit
                 | FormatToken::YearFourDigit
                 | FormatToken::MonthNum
                 | FormatToken::MonthNumPadded
                 | FormatToken::MonthAbbr
                 | FormatToken::MonthFullName
                 | FormatToken::MonthLetter
-                | FormatToken::MonthOrMinute1
-                | FormatToken::MonthOrMinute2
                 | FormatToken::DayNum
                 | FormatToken::DayNumPadded
                 | FormatToken::WeekdayAbbr
@@ -137,11 +137,48 @@ impl FormatToken {
                 | FormatToken::MinuteNumPadded
                 | FormatToken::SecondNum
                 | FormatToken::SecondNumPadded
-                | FormatToken::AmPm
-                | FormatToken::AP
+                | FormatToken::AmPm(_)
+                | FormatToken::AP(_)
                 | FormatToken::ElapsedHours
                 | FormatToken::ElapsedMinutes
                 | FormatToken::ElapsedSeconds
+                | FormatToken::MonthOrMinute1
+                | FormatToken::MonthOrMinute2
+                | FormatToken::DigitOrZero
+                | FormatToken::DigitIfNeeded
+                | FormatToken::DigitOrSpace
+                | FormatToken::DecimalPoint
+        )
+    }
+
+    /// Checks if the token is a placeholder for a date or time
+    pub fn is_datetime_placeholder(&self) -> bool {
+        matches!(
+            self,
+            FormatToken::YearTwoDigit
+                | FormatToken::YearFourDigit
+                | FormatToken::MonthNum
+                | FormatToken::MonthNumPadded
+                | FormatToken::MonthAbbr
+                | FormatToken::MonthFullName
+                | FormatToken::MonthLetter
+                | FormatToken::DayNum
+                | FormatToken::DayNumPadded
+                | FormatToken::WeekdayAbbr
+                | FormatToken::WeekdayFullName
+                | FormatToken::Hour12Or24
+                | FormatToken::Hour12Or24Padded
+                | FormatToken::MinuteNum
+                | FormatToken::MinuteNumPadded
+                | FormatToken::SecondNum
+                | FormatToken::SecondNumPadded
+                | FormatToken::AmPm(_)
+                | FormatToken::AP(_)
+                | FormatToken::ElapsedHours
+                | FormatToken::ElapsedMinutes
+                | FormatToken::ElapsedSeconds
+                | FormatToken::MonthOrMinute1
+                | FormatToken::MonthOrMinute2
         )
     }
 }
@@ -216,8 +253,26 @@ pub struct LocaleSettings {
     pub decimal_point: char,
     /// Character to use for the thousands separator.
     pub thousands_separator: char,
-    // currency_symbol: String, // Future addition
-    // grouping: Vec<usize>, // Future addition for irregular grouping like Indian numbering
+
+    /// AM and PM markers, e.g., `["AM", "PM"]` or `["上午", "下午"]`.
+    /// Should contain two elements: [AM_equivalent, PM_equivalent].
+    pub ampm_markers: [String; 2],
+
+    /// Short day names, Sunday to Saturday, e.g., `["Sun", "Mon", ..., "Sat"]`.
+    /// Should contain 7 elements, starting with Sunday.
+    pub short_day_names: [String; 7],
+
+    /// Full day names, Sunday to Saturday, e.g., `["Sunday", "Monday", ..., "Saturday"]`.
+    /// Should contain 7 elements, starting with Sunday.
+    pub day_names: [String; 7],
+
+    /// Short month names, January to December, e.g., `["Jan", "Feb", ..., "Dec"]`.
+    /// Should contain 12 elements, starting with January.
+    pub short_month_names: [String; 12],
+
+    /// Full month names, January to December, e.g., `["January", "February", ..., "December"]`.
+    /// Should contain 12 elements, starting with January.
+    pub month_names: [String; 12],
 }
 
 impl Default for LocaleSettings {
@@ -225,6 +280,103 @@ impl Default for LocaleSettings {
         LocaleSettings {
             decimal_point: '.',
             thousands_separator: ',',
+
+            ampm_markers: ["AM".to_string(), "PM".to_string()],
+            short_day_names: [
+                "Sun".to_string(),
+                "Mon".to_string(),
+                "Tue".to_string(),
+                "Wed".to_string(),
+                "Thu".to_string(),
+                "Fri".to_string(),
+                "Sat".to_string(),
+            ],
+            day_names: [
+                "Sunday".to_string(),
+                "Monday".to_string(),
+                "Tuesday".to_string(),
+                "Wednesday".to_string(),
+                "Thursday".to_string(),
+                "Friday".to_string(),
+                "Saturday".to_string(),
+            ],
+            short_month_names: [
+                "Jan".to_string(),
+                "Feb".to_string(),
+                "Mar".to_string(),
+                "Apr".to_string(),
+                "May".to_string(),
+                "Jun".to_string(),
+                "Jul".to_string(),
+                "Aug".to_string(),
+                "Sep".to_string(),
+                "Oct".to_string(),
+                "Nov".to_string(),
+                "Dec".to_string(),
+            ],
+            month_names: [
+                "January".to_string(),
+                "February".to_string(),
+                "March".to_string(),
+                "April".to_string(),
+                "May".to_string(),
+                "June".to_string(),
+                "July".to_string(),
+                "August".to_string(),
+                "September".to_string(),
+                "October".to_string(),
+                "November".to_string(),
+                "December".to_string(),
+            ],
         }
+    }
+}
+
+impl LocaleSettings {
+    /// Sets the decimal point character.
+    pub fn with_decimal_point(mut self, ch: char) -> Self {
+        self.decimal_point = ch;
+        self
+    }
+
+    /// Sets the thousands separator character.
+    pub fn with_thousands_separator(mut self, ch: char) -> Self {
+        self.thousands_separator = ch;
+        self
+    }
+
+    /// Sets the AM/PM markers.
+    /// Expects an array of two string slices: `[am_marker, pm_marker]`.
+    pub fn with_ampm_markers(mut self, markers: [&str; 2]) -> Self {
+        self.ampm_markers = [markers[0].to_string(), markers[1].to_string()];
+        self
+    }
+
+    /// Sets the short day names (Sunday to Saturday).
+    /// Expects an array of seven string slices.
+    pub fn with_short_day_names(mut self, names: [&str; 7]) -> Self {
+        self.short_day_names = names.map(|s| s.to_string());
+        self
+    }
+
+    /// Sets the full day names (Sunday to Saturday).
+    /// Expects an array of seven string slices.
+    pub fn with_day_names(mut self, names: [&str; 7]) -> Self {
+        self.day_names = names.map(|s| s.to_string());
+        self
+    }
+
+    /// Sets the short month names (January to December).
+    /// Expects an array of twelve string slices.
+    pub fn with_short_month_names(mut self, names: [&str; 12]) -> Self {
+        self.short_month_names = names.map(|s| s.to_string());
+        self
+    }
+
+    /// Sets the full month names (January to December).
+    /// Expects an array of twelve string slices.
+    pub fn with_month_names(mut self, names: [&str; 12]) -> Self {
+        self.month_names = names.map(|s| s.to_string());
+        self
     }
 }

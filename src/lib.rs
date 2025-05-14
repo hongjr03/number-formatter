@@ -16,7 +16,9 @@ use types::LocaleSettings;
 /// let formatted_default_locale = format_number(num, &fmt, &LocaleSettings::default());
 /// assert_eq!(formatted_default_locale, "12,345.68"); // Assuming thousands separator is implemented
 ///
-/// let german_locale = LocaleSettings { decimal_point: ',', thousands_separator: '.' };
+/// let german_locale = LocaleSettings::default()
+///     .with_decimal_point(',')
+///     .with_thousands_separator('.');
 /// let formatted_german_locale = format_number(num, &fmt, &german_locale);
 /// // Expected: "12.345,68" (once thousands separator is implemented and respecting locale)
 /// // For now, without thousands separator: "12345,68"

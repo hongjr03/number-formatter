@@ -116,17 +116,21 @@ pub fn parse_second_single(input: &mut &str) -> ModalResult<FormatToken> {
 }
 
 pub fn parse_am_pm(input: &mut &str) -> ModalResult<FormatToken> {
-    literal(Caseless("AM/PM"))
-        .value(FormatToken::AmPm)
-        .parse_next(input)
-        .map_err(ErrMode::Backtrack)
+    alt((
+        literal("AM/PM").value(FormatToken::AmPm(AmPmStyle::UpperCase)),
+        literal("am/pm").value(FormatToken::AmPm(AmPmStyle::LowerCase)),
+    ))
+    .parse_next(input)
+    .map_err(ErrMode::Backtrack)
 }
 
 pub fn parse_a_p(input: &mut &str) -> ModalResult<FormatToken> {
-    literal(Caseless("A/P"))
-        .value(FormatToken::AP)
-        .parse_next(input)
-        .map_err(ErrMode::Backtrack)
+    alt((
+        literal("A/P").value(FormatToken::AP(AmPmStyle::UpperCase)),
+        literal("a/p").value(FormatToken::AP(AmPmStyle::LowerCase)),
+    ))
+    .parse_next(input)
+    .map_err(ErrMode::Backtrack)
 }
 
 // Elapsed time parsers

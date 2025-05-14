@@ -1,6 +1,45 @@
+use crate::formatter::datetime;
 use crate::formatter::exponential;
 use crate::types::{FormatSection, FormatToken, LocaleSettings};
 use std::fmt::Write;
+
+/// Helper function to check if a section contains any date/time point-in-time tokens
+fn section_is_datetime_point_in_time(section: &FormatSection) -> bool {
+    section.tokens.iter().any(|token| {
+        matches!(
+            token,
+            FormatToken::YearTwoDigit |
+        FormatToken::YearFourDigit |
+        FormatToken::MonthNum |
+        FormatToken::MonthNumPadded |
+        FormatToken::MonthAbbr |
+        FormatToken::MonthFullName |
+        FormatToken::MonthLetter |
+        FormatToken::DayNum |
+        FormatToken::DayNumPadded |
+        FormatToken::WeekdayAbbr |
+        FormatToken::WeekdayFullName |
+        FormatToken::Hour12Or24 |
+        FormatToken::Hour12Or24Padded |
+        // MinuteNum, SecondNum etc. can appear in durations too, so context is key.
+        // AmPm, AP are strong indicators of point-in-time.
+        FormatToken::AmPm(_) |
+        FormatToken::AP(_) |
+        FormatToken::MonthOrMinute1 |
+        FormatToken::MonthOrMinute2
+        )
+    })
+}
+
+/// Helper function to check if a section contains duration-specific tokens
+fn section_is_duration(section: &FormatSection) -> bool {
+    section.tokens.iter().any(|token| {
+        matches!(
+            token,
+            FormatToken::ElapsedHours | FormatToken::ElapsedMinutes | FormatToken::ElapsedSeconds
+        )
+    })
+}
 
 /// Format a numeric value using the specified format section
 pub(super) fn format_value(
@@ -10,6 +49,17 @@ pub(super) fn format_value(
     locale: &LocaleSettings,
     is_positive_section_fallback_for_negative: bool, // True if positive_section is used for a negative original_value
 ) -> String {
+    // Priority: Check for duration formats first, as they use specific tokens like [h], [m], [s]
+    if section_is_duration(section) {
+        return datetime::format_duration(original_value_for_sign, section, locale);
+    }
+
+    // Then check for general date/time (point-in-time) formats
+    // Renamed section_is_datetime to section_is_datetime_point_in_time for clarity
+    if section_is_datetime_point_in_time(section) {
+        return datetime::format_datetime(original_value_for_sign, section, locale);
+    }
+
     // NEW: If section contains @, it overrides ALL other tokens in the section.
     // The output is simply the value as text, with potential sign prepending for fallback negatives.
     if section

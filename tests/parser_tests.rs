@@ -113,7 +113,7 @@ fn test_date_format_month_minute() {
 
     assert_eq!(tokens[1], FormatToken::LiteralChar(' '));
     assert_eq!(tokens[2], FormatToken::DayNum); // d
-    assert_eq!(tokens[3], FormatToken::ThousandsSeparator); // ',' 被解析为千位分隔符
+    assert_eq!(tokens[3], FormatToken::LiteralChar(','));
     assert_eq!(tokens[4], FormatToken::LiteralChar(' '));
     assert_eq!(tokens[5], FormatToken::YearFourDigit); // yyyy
     assert_eq!(tokens[6], FormatToken::LiteralChar(' '));
@@ -121,7 +121,7 @@ fn test_date_format_month_minute() {
     assert_eq!(tokens[8], FormatToken::LiteralChar(':'));
     assert_eq!(tokens[9], FormatToken::MinuteNumPadded); // mm (resolved from MonthOrMinute2)
     assert_eq!(tokens[10], FormatToken::LiteralChar(' '));
-    assert_eq!(tokens[11], FormatToken::AmPm); // AM/PM
+    assert_eq!(tokens[11], FormatToken::AmPm(AmPmStyle::UpperCase)); // AM/PM
 }
 
 #[test]
