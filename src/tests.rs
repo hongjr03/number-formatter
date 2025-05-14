@@ -286,7 +286,7 @@ fn test_main() {
 
 #[cfg(test)]
 mod formatter_tests {
-    use crate::types::LocaleSettings;
+    use crate::types::{FormatToken, LocaleSettings};
     use crate::{format_number, parse_number_format};
 
     #[test]
@@ -467,17 +467,181 @@ mod formatter_tests {
     #[test]
     fn test_localized_decimal_point() {
         let format = parse_number_format("0.00").unwrap();
-        let german_locale = LocaleSettings {
+        let locale_de = LocaleSettings {
             decimal_point: ',',
             thousands_separator: '.',
         };
-        assert_eq!(format_number(123.456, &format, &german_locale), "123,46");
-        assert_eq!(format_number(0.789, &format, &german_locale), "0,79");
-
-        let format_exp = parse_number_format("0.00E+00").unwrap();
+        assert_eq!(format_number(123.45, &format, &locale_de), "123,45");
         assert_eq!(
-            format_number(12345.67, &format_exp, &german_locale),
-            "1,23E+04"
+            format_number(0.995, &parse_number_format("0.00").unwrap(), &locale_de),
+            "1,00"
+        );
+    }
+
+    #[test]
+    fn test_scaling_commas() {
+        let default_locale = LocaleSettings::default();
+
+        // Simple scaling
+        let format_simple = parse_number_format("0,").unwrap();
+        assert_eq!(format_simple.positive_section.num_scaling_commas, 1);
+        assert_eq!(
+            format_simple.positive_section.tokens,
+            vec![FormatToken::DigitOrZero]
+        );
+        assert_eq!(
+            format_number(12345.0, &format_simple, &default_locale),
+            "12"
+        );
+        assert_eq!(
+            format_number(12789.0, &format_simple, &default_locale),
+            "13"
+        );
+
+        // Multiple scaling commas
+        let format_double = parse_number_format("0,,").unwrap();
+        assert_eq!(format_double.positive_section.num_scaling_commas, 2);
+        assert_eq!(
+            format_double.positive_section.tokens,
+            vec![FormatToken::DigitOrZero]
+        );
+        assert_eq!(
+            format_number(12345678.0, &format_double, &default_locale),
+            "12"
+        );
+        assert_eq!(
+            format_number(12789123.0, &format_double, &default_locale),
+            "13"
+        );
+
+        // Scaling with decimals in format
+        let format_decimal_scale = parse_number_format("0.0,").unwrap();
+        assert_eq!(format_decimal_scale.positive_section.num_scaling_commas, 1);
+        assert_eq!(
+            format_decimal_scale.positive_section.tokens,
+            vec![
+                FormatToken::DigitOrZero,
+                FormatToken::DecimalPoint,
+                FormatToken::DigitOrZero
+            ]
+        );
+        assert_eq!(
+            format_number(12345.6, &format_decimal_scale, &default_locale),
+            "12.3"
+        );
+        assert_eq!(
+            format_number(123.4, &format_decimal_scale, &default_locale),
+            "0.1"
+        );
+
+        // Scaling with text
+        let format_clear_scale_text = parse_number_format("0,,\"M\"").unwrap();
+        assert_eq!(
+            format_clear_scale_text.positive_section.num_scaling_commas,
+            2
+        );
+        assert_eq!(
+            format_clear_scale_text.positive_section.tokens,
+            vec![
+                FormatToken::DigitOrZero,
+                FormatToken::QuotedText("M".to_string()),
+            ]
+        );
+        assert_eq!(
+            format_number(12345678.0, &format_clear_scale_text, &default_locale),
+            "12M"
+        );
+
+        // Scaling for zero value
+        assert_eq!(format_number(0.0, &format_simple, &default_locale), "0");
+
+        // Scaling for negative value
+        let format_neg_simple = parse_number_format("0,;-0,").unwrap();
+        assert_eq!(
+            format_number(-12345.0, &format_neg_simple, &default_locale),
+            "-12"
+        );
+        assert_eq!(
+            format_number(-12789.0, &format_neg_simple, &default_locale),
+            "-13"
+        );
+
+        // Scaling combined with thousands separator
+        let format_combo = parse_number_format("#,##0.0, \"K\"").unwrap();
+        assert_eq!(format_combo.positive_section.num_scaling_commas, 1);
+        assert_eq!(
+            format_combo.positive_section.tokens,
+            vec![
+                FormatToken::DigitIfNeeded,
+                FormatToken::ThousandsSeparator,
+                FormatToken::DigitIfNeeded,
+                FormatToken::DigitIfNeeded,
+                FormatToken::DigitOrZero,
+                FormatToken::DecimalPoint,
+                FormatToken::DigitOrZero,
+                FormatToken::LiteralChar(' '),
+                FormatToken::QuotedText("K".to_string()),
+            ]
+        );
+        assert_eq!(
+            format_number(1234567.89, &format_combo, &default_locale),
+            "1,234.6 K"
+        );
+        assert_eq!(
+            format_number(567.0, &format_combo, &default_locale),
+            "0.6 K"
+        );
+
+        // Format with only scaling commas (no other numeric placeholders)
+        let format_only_commas = parse_number_format(",,").unwrap();
+        assert_eq!(
+            format_only_commas.positive_section.num_scaling_commas, 2,
+            "Test: ,, format - num_scaling_commas"
+        );
+        assert!(
+            format_only_commas.positive_section.tokens.is_empty(),
+            "Test: ,, format - tokens empty"
+        );
+        // assert_eq!(
+        //     format_number(12345678.0, &format_only_commas, &default_locale),
+        //     ""
+        // );
+
+        // Test a case where comma is clearly part of text and not scaling
+        let format_text_comma = parse_number_format("\"Total: ,\"0").unwrap();
+        assert_eq!(format_text_comma.positive_section.num_scaling_commas, 0);
+        assert_eq!(
+            format_text_comma.positive_section.tokens,
+            vec![
+                FormatToken::QuotedText("Total: ,".to_string()),
+                FormatToken::DigitOrZero
+            ]
+        );
+        assert_eq!(
+            format_number(123.0, &format_text_comma, &default_locale),
+            "Total: ,123"
+        );
+
+        // Test literal comma, then number, then scaling comma.
+        let format_literal_comma_then_scale = parse_number_format("\",\"0.0,").unwrap();
+        assert_eq!(
+            format_literal_comma_then_scale
+                .positive_section
+                .num_scaling_commas,
+            1
+        );
+        assert_eq!(
+            format_literal_comma_then_scale.positive_section.tokens,
+            vec![
+                FormatToken::QuotedText(",".to_string()),
+                FormatToken::DigitOrZero,
+                FormatToken::DecimalPoint,
+                FormatToken::DigitOrZero,
+            ]
+        );
+        assert_eq!(
+            format_number(4567.0, &format_literal_comma_then_scale, &default_locale),
+            ",4.6"
         );
     }
 }

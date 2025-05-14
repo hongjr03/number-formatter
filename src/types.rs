@@ -192,6 +192,8 @@ pub struct FormatSection {
     pub tokens: Vec<FormatToken>,
     /// Indicates if this is the fourth section (text section)
     pub is_text_section: bool,
+    /// Number of commas at the end of number placeholders for scaling
+    pub num_scaling_commas: u8,
 }
 
 /// Represents a complete number format with all sections

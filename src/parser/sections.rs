@@ -24,27 +24,72 @@ pub fn parse_one_section(
             None
         };
 
-        let tokens: Vec<FormatToken> = (parse_section_tokens(is_text_s).parse_next(input))?;
+        // Parse all tokens initially, including all commas as ThousandsSeparator
+        let all_tokens: Vec<FormatToken> = (parse_section_tokens(is_text_s).parse_next(input))?;
 
-        let (color, tokens) = if !tokens.is_empty() {
-            match &tokens[0] {
+        // Separate color token if present
+        let (color_opt, mut tokens_after_color) = if !all_tokens.is_empty() {
+            match &all_tokens[0] {
                 FormatToken::Color(color_type) => {
-                    // Remove the color token from the tokens list
-                    let color = Some(color_type.clone());
-                    let new_tokens = tokens.into_iter().skip(1).collect();
-                    (color, new_tokens)
+                    (Some(color_type.clone()), all_tokens.into_iter().skip(1).collect())
                 }
-                _ => (None, tokens),
+                _ => (None, all_tokens),
             }
         } else {
-            (None, tokens)
+            (None, all_tokens)
         };
+
+        let mut num_scaling_commas_val: u8 = 0;
+
+        // Find the index of the last numeric-related token (digit placeholders, decimal, exponential)
+        let last_numeric_token_idx = tokens_after_color.iter().rposition(|t| {
+            matches!(t, FormatToken::DigitOrZero |
+                        FormatToken::DigitIfNeeded |
+                        FormatToken::DigitOrSpace |
+                        FormatToken::DecimalPoint |
+                        FormatToken::Exponential(_))
+        });
+
+        if let Some(last_idx) = last_numeric_token_idx {
+            // Numeric part exists. Check for scaling commas after it.
+            let mut removal_indices = Vec::new();
+            for (i, token) in tokens_after_color.iter().enumerate().skip(last_idx + 1) {
+                if matches!(token, FormatToken::ThousandsSeparator) {
+                    num_scaling_commas_val += 1;
+                    removal_indices.push(i);
+                } else {
+                    // Stop if a non-comma token is found after the numeric part's trailing commas
+                    break;
+                }
+            }
+            // Remove identified scaling commas in reverse order to maintain correct indices
+            for i in removal_indices.iter().rev() {
+                tokens_after_color.remove(*i);
+            }
+        } else {
+            // No numeric tokens found in the section (e.g., format is just ",,", or ",,TEXT")
+            // Only leading commas before any other token type are considered scaling.
+            let mut removal_indices = Vec::new();
+            for (i, token) in tokens_after_color.iter().enumerate() {
+                if matches!(token, FormatToken::ThousandsSeparator) {
+                    num_scaling_commas_val += 1;
+                    removal_indices.push(i);
+                } else {
+                    // Stop if any non-comma token is encountered
+                    break;
+                }
+            }
+            for i in removal_indices.iter().rev() {
+                tokens_after_color.remove(*i);
+            }
+        }
 
         Ok(FormatSection {
             condition: maybe_condition,
-            tokens,
+            tokens: tokens_after_color,
             is_text_section: is_text_s,
-            color,
+            color: color_opt,
+            num_scaling_commas: num_scaling_commas_val,
         })
     }
 }
