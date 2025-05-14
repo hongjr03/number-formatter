@@ -1,8 +1,8 @@
 use winnow::combinator::{opt, repeat};
 use winnow::{ModalResult, Parser};
 
-use crate::types::*;
 use crate::parser::combinators::{parse_condition, parse_single_token};
+use crate::types::*;
 
 /// Parse a sequence of tokens
 pub fn parse_section_tokens(
@@ -12,7 +12,9 @@ pub fn parse_section_tokens(
 }
 
 /// Parse a single format section
-pub fn parse_one_section(section_index: usize) -> impl FnMut(&mut &str) -> ModalResult<FormatSection> {
+pub fn parse_one_section(
+    section_index: usize,
+) -> impl FnMut(&mut &str) -> ModalResult<FormatSection> {
     move |input: &mut &str| {
         let is_text_s = section_index == 3;
 
@@ -24,16 +26,31 @@ pub fn parse_one_section(section_index: usize) -> impl FnMut(&mut &str) -> Modal
 
         let tokens: Vec<FormatToken> = (parse_section_tokens(is_text_s).parse_next(input))?;
 
+        let (color, tokens) = if !tokens.is_empty() {
+            match &tokens[0] {
+                FormatToken::Color(color_type) => {
+                    // Remove the color token from the tokens list
+                    let color = Some(color_type.clone());
+                    let new_tokens = tokens.into_iter().skip(1).collect();
+                    (color, new_tokens)
+                }
+                _ => (None, tokens),
+            }
+        } else {
+            (None, tokens)
+        };
+
         Ok(FormatSection {
             condition: maybe_condition,
             tokens,
             is_text_section: is_text_s,
+            color,
         })
     }
 }
 
 /// Resolve ambiguity between month and minute tokens (m/mm)
-/// 
+///
 /// This function analyzes the context of m/mm tokens to determine whether they represent
 /// months or minutes based on adjacent tokens.
 pub fn resolve_month_minute_ambiguity_in_section(tokens: &mut Vec<FormatToken>) {
@@ -92,4 +109,4 @@ pub fn resolve_month_minute_ambiguity_in_section(tokens: &mut Vec<FormatToken>) 
         }
     }
     *tokens = new_tokens;
-} 
+}

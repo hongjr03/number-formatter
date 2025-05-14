@@ -231,10 +231,12 @@ pub fn parse_escaped_char_as_literal(input: &mut &str) -> ModalResult<FormatToke
 }
 
 pub fn parse_literal_passthrough(input: &mut &str) -> ModalResult<FormatToken> {
-    one_of(['$', '-', '+', '/', '(', ')', ' ', ':'])
-        .map(FormatToken::LiteralChar)
-        .parse_next(input)
-        .map_err(ErrMode::Backtrack)
+    one_of([
+        '$', '+', '(', ':', '^', '\'', '{', '<', '=', '-', '/', ')', '!', '&', '~', '}', '>', ' ',
+    ])
+    .map(FormatToken::LiteralChar)
+    .parse_next(input)
+    .map_err(ErrMode::Backtrack)
 }
 
 pub fn parse_fill(input: &mut &str) -> ModalResult<FormatToken> {

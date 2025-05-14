@@ -184,6 +184,8 @@ pub struct Condition {
 /// Represents a section of the format string with optional condition and a sequence of tokens
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct FormatSection {
+    /// The section's color, if any
+    pub color: Option<ColorType>,
     /// The section's condition, if any
     pub condition: Option<Condition>,
     /// Sequence of format tokens

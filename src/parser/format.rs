@@ -1,9 +1,9 @@
-use winnow::token::literal;
-use winnow::error::ErrMode;
 use winnow::Parser;
+use winnow::error::ErrMode;
+use winnow::token::literal;
 
-use crate::types::*;
 use crate::parser::sections::{parse_one_section, resolve_month_minute_ambiguity_in_section};
+use crate::types::*;
 
 /// Parse a number format string
 ///
@@ -17,7 +17,7 @@ use crate::parser::sections::{parse_one_section, resolve_month_minute_ambiguity_
 ///
 /// # Examples
 /// ```
-/// use number_format_parser::parse_number_format;
+/// use number_format::parser::parse_number_format;
 ///
 /// let result = parse_number_format("0.00").unwrap();
 /// ```
@@ -128,4 +128,4 @@ pub fn parse_number_format(input_str: &str) -> Result<NumberFormat, String> {
         zero_section,
         text_section,
     })
-} 
+}
