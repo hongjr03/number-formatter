@@ -482,3 +482,64 @@ fn test_negative_sign_with_prefix_and_suffix() {
     let format9 = parse_number_format("\"-Val: \"0.0").unwrap();
     assert_eq!(format_number(-12.3, &format9, &locale), "--Val: 12.3");
 }
+
+#[test]
+fn test_special_char_formatting() {
+    let locale = LocaleSettings::default();
+
+    // --- Test cases for _ (SkipWidth) ---
+    let format_skip1 = parse_number_format("0_0").unwrap();
+    assert_eq!(format_number(7.0, &format_skip1, &locale), "7 ");
+    assert_eq!(format_number(0.0, &format_skip1, &locale), "0 ");
+
+    let format_skip2 = parse_number_format("\"Result: \"_0").unwrap();
+    assert_eq!(format_number(42.0, &format_skip2, &locale), "Result: ");
+
+    // Test for alignment: Positive numbers use _), negative use ()
+    // The _ should add one space character.
+    let format_skip_align = parse_number_format("0.00_);(0.00)").unwrap();
+    assert_eq!(
+        format_number(123.45, &format_skip_align, &locale),
+        "123.45 "
+    );
+    assert_eq!(
+        format_number(-123.45, &format_skip_align, &locale),
+        "(123.45)"
+    );
+
+    // --- Test cases for @ (TextValue in numeric context) ---
+    let format_at1 = parse_number_format("@").unwrap();
+    assert_eq!(format_number(123.45, &format_at1, &locale), "123.45");
+    assert_eq!(format_number(0.0, &format_at1, &locale), "0");
+    assert_eq!(format_number(-7.0, &format_at1, &locale), "-7");
+
+    let format_at2 = parse_number_format("\"Amt: \"@").unwrap();
+    assert_eq!(format_number(123.0, &format_at2, &locale), "123");
+
+    let format_at3 = parse_number_format("@\" units\"").unwrap();
+    assert_eq!(format_number(-50.0, &format_at3, &locale), "-50");
+
+    let format_at_section = parse_number_format("0.00;\"NegText: \"@").unwrap();
+    assert_eq!(format_number(-67.89, &format_at_section, &locale), "-67.89");
+    assert_eq!(format_number(67.89, &format_at_section, &locale), "67.89"); // Positive section
+
+    // --- Test cases for \ (Literal character escape) ---
+    // Note: parse_escaped_char_as_literal makes \X -> LiteralChar(X)
+    let format_esc_hash = parse_number_format("\\#0").unwrap(); // \# -> LiteralChar('#')
+    assert_eq!(format_number(7.0, &format_esc_hash, &locale), "#7");
+
+    let format_esc_underscore = parse_number_format("0\\_0").unwrap(); // \_ -> LiteralChar('_')
+    assert_eq!(format_number(8.0, &format_esc_underscore, &locale), "0_8");
+
+    let format_esc_at = parse_number_format("0\\@0").unwrap(); // \@ -> LiteralChar('@')
+    assert_eq!(format_number(9.0, &format_esc_at, &locale), "0@9");
+
+    let format_esc_backslash = parse_number_format("0\\\\0").unwrap(); // \\ -> LiteralChar('\')
+    assert_eq!(format_number(1.0, &format_esc_backslash, &locale), "0\\1");
+
+    let format_esc_backslash_2 = parse_number_format("0\\\\\\0").unwrap(); // \\ -> LiteralChar('\')
+    assert_eq!(format_number(1.0, &format_esc_backslash_2, &locale), "1\\0");
+
+    let format_esc_star = parse_number_format("\\*0").unwrap(); // \* -> LiteralChar('*')
+    assert_eq!(format_number(2.0, &format_esc_star, &locale), "*2");
+}

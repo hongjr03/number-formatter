@@ -10,6 +10,35 @@ pub(super) fn format_value(
     locale: &LocaleSettings,
     is_positive_section_fallback_for_negative: bool, // True if positive_section is used for a negative original_value
 ) -> String {
+    // NEW: If section contains @, it overrides ALL other tokens in the section.
+    // The output is simply the value as text, with potential sign prepending for fallback negatives.
+    if section
+        .tokens
+        .iter()
+        .any(|t| matches!(t, FormatToken::TextValue))
+    {
+        let mut value_as_text = if is_positive_section_fallback_for_negative {
+            // For fallback, use the (abs) value prepared for placeholders.
+            value_to_format_placeholders.to_string()
+        } else {
+            // For non-fallback (e.g. positive section with @, or negative section with @),
+            // use the original value, which includes its sign.
+            original_value_for_sign.to_string()
+        };
+
+        // If this was a positive section used as a fallback for a negative number,
+        // and the original value was indeed negative, prepend a minus sign.
+        if is_positive_section_fallback_for_negative && original_value_for_sign < 0.0 {
+            // value_to_format_placeholders.to_string() should give an unsigned string here.
+            // Prepend '-' to achieve the "-" + Format(Abs(Value), PositiveSectionContaining@) behavior.
+            if !value_as_text.starts_with('-') {
+                // Should be true if value_to_format_placeholders was abs
+                value_as_text.insert(0, '-');
+            }
+        }
+        return value_as_text;
+    }
+
     const EPSILON: f64 = 1e-9;
     let mut result = String::new();
 
@@ -204,6 +233,7 @@ pub(super) fn format_value(
     let mut current_int_placeholder_idx = 0;
     let mut actual_int_digit_printed = false;
 
+    // Main formatting loop
     for token in &section.tokens {
         match token {
             FormatToken::LiteralChar(c) => {
@@ -214,6 +244,9 @@ pub(super) fn format_value(
                         false
                     };
 
+                // This loop handles cases where integer digits are present but there are no more
+                // integer placeholders (e.g. format "#,##0" for value 1234567, the '1' is printed here).
+                // OR if there are no integer placeholders at all in the format string.
                 while int_digits_iter.peek().is_some()
                     && (current_int_placeholder_idx >= total_integer_placeholders
                         || total_integer_placeholders == 0)
@@ -372,8 +405,20 @@ pub(super) fn format_value(
                 result.push('%');
             }
             FormatToken::ThousandsSeparator => {}
-            FormatToken::TextValue => {}
-            _ => {}
+            FormatToken::TextValue => {
+                // This case should ideally not be reached if the early @ check is in place.
+                // If it is, it means @ was present but the early exit didn't happen (should not occur).
+                // Or, this is a TextValue token in a section that *doesn't* have the overriding @ behavior,
+                // which implies a misunderstanding of how TextValue is used outside of the "@ overrides all" rule.
+                // For now, treat as a non-event if reached, as primary @ logic is at function start.
+            }
+            FormatToken::SkipWidth(_) => {
+                // As per spec "To create a space that is the width of a character... include an underscore character (_), followed by the character"
+                // Simplest implementation is to just add a space. The actual char in SkipWidth(char) is ignored for now.
+                result.push(' ');
+            }
+            // FormatToken::Fill(_): Behavior for fill character is complex and depends on column width, deferred for now.
+            _ => {} // Existing catch-all for other tokens like Color, Date/Time (if not handled before or in text mode)
         }
     }
 
@@ -436,8 +481,8 @@ pub(super) fn format_value(
             // Not using parentheses for negative sign
             if is_positive_section_fallback_for_negative {
                 // Excel behavior for P(abs(V)): prepend '-' to the result of (PositiveSection applied to Abs(Value)).
-                // This happens regardless of what `sign_printed` is, as the positive section's literals
-                // (which might have set `sign_printed`) are part of P(abs(V)).
+                // This happens UNCONDITIONALLY when it's a fallback for a negative value,
+                // as the positive section's literals are part of P(abs(V)).
                 result.insert(0, '-');
             } else if !sign_printed {
                 // This is for an actual negative section that was chosen, but it doesn't use parentheses
