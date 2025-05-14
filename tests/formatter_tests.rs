@@ -356,3 +356,129 @@ fn test_scaling_commas() {
         ",4.6"
     );
 }
+
+#[test]
+fn test_negative_sign_with_prefix() {
+    let locale = LocaleSettings::default();
+
+    // Test case 1: Explicit negative format with prefix
+    let format_explicit_neg = parse_number_format("\"USD \"#,##0.00;\"USD \"-#,##0.00").unwrap();
+    assert_eq!(
+        format_number(-1234.56, &format_explicit_neg, &locale),
+        "USD -1,234.56"
+    );
+    assert_eq!(
+        format_number(1234.56, &format_explicit_neg, &locale),
+        "USD 1,234.56"
+    );
+    assert_eq!(
+        format_number(-0.50, &format_explicit_neg, &locale),
+        "USD -0.50"
+    );
+
+    // Test case 2: Implicit negative format handling with prefix
+    // Relies on the general sign insertion logic if only positive section is provided
+    // and the value is negative.
+    let format_implicit_neg = parse_number_format("\"Val: \"#,##0.00").unwrap();
+    assert_eq!(
+        format_number(-567.89, &format_implicit_neg, &locale),
+        "-Val: 567.89" // Assuming default negative is prepending sign
+    );
+    assert_eq!(
+        format_number(567.89, &format_implicit_neg, &locale),
+        "Val: 567.89"
+    );
+    assert_eq!(
+        format_number(-0.89, &format_implicit_neg, &locale),
+        "-Val: 0.89"
+    );
+    assert_eq!(
+        format_number(0.0, &format_implicit_neg, &locale),
+        "Val: 0.00" // Zero handling with prefix
+    );
+
+    // Test case 3: Prefix with spaces
+    let format_prefix_spaces = parse_number_format("\"  Pref: \"0.0").unwrap();
+    assert_eq!(
+        format_number(-12.3, &format_prefix_spaces, &locale),
+        "-  Pref: 12.3"
+    );
+
+    // Test case 4: Negative sign already in prefix literal (should not double sign)
+    // This case's behavior depends on how parser/formatter handles literal '-' vs sign.
+    // Assuming literal '-' in format string for negative section is the sign.
+    let format_literal_minus_in_prefix =
+        parse_number_format("\"-Val: \"0.0;\"-Val: \"0.0").unwrap();
+    assert_eq!(
+        format_number(-12.3, &format_literal_minus_in_prefix, &locale),
+        "-Val: 12.3" // or "-Val: -12.3" if it just prepends. This tests if it's smart.
+                     // The current core logic should handle the literal '-' from the section
+                     // and `sign_printed` should become true.
+    );
+    // Let's define a positive section and a specific negative one for this.
+    // Format: <POSITIVE_FORMAT>;<NEGATIVE_FORMAT_WITH_LITERAL_SIGN>
+    let format_neg_section_has_sign =
+        parse_number_format("\"Pos: \"0.0;\"NegPrefix -\"0.0").unwrap();
+    assert_eq!(
+        format_number(-45.6, &format_neg_section_has_sign, &locale),
+        "-NegPrefix -45.6"
+    );
+    let format_literal_minus_in_prefix_2 = parse_number_format("\"-Val: \"0.0").unwrap();
+    assert_eq!(
+        format_number(-12.3, &format_literal_minus_in_prefix_2, &locale),
+        "--Val: 12.3"
+    );
+}
+
+#[test]
+fn test_negative_sign_with_prefix_and_suffix() {
+    let locale = LocaleSettings::default();
+
+    // Case 1: Single positive section with literal dash in prefix, negative value
+    // Expected: Excel-like prepend of '-' before the section's output.
+    let format1 = parse_number_format("\"-Val: \"0.0").unwrap();
+    assert_eq!(format_number(-12.3, &format1, &locale), "--Val: 12.3");
+
+    // Case 2: Single positive section, number then text suffix, negative value
+    let format2 = parse_number_format("0.0\" USD\"").unwrap();
+    assert_eq!(format_number(-12.3, &format2, &locale), "-12.3 USD");
+
+    // Case 3: Defined positive and negative sections, negative section has literal dash prefix
+    let format3 = parse_number_format("0.0 \"Pos\";\"-NEG\" 0.0").unwrap();
+    assert_eq!(format_number(-12.3, &format3, &locale), "-NEG 12.3");
+    assert_eq!(format_number(12.3, &format3, &locale), "12.3 Pos"); // sanity check positive
+
+    // Case 4: Single positive section with literal dash in prefix, zero value
+    // Expected: The section is applied as is, no extra sign logic for zero.
+    let format4 = parse_number_format("\"-Val: \"0.0").unwrap();
+    assert_eq!(format_number(0.0, &format4, &locale), "-Val: 0.0");
+
+    // Case 5: Single positive section with parentheses in prefix/suffix, negative value
+    // Excel: -(-Val: 12.3)
+    // Our current logic: is_positive_section_fallback_for_negative = true.
+    // format_value will produce "(-Val: 12.3)". Then prepends '-'.
+    let format5 = parse_number_format("\"(-Val: \"0.0\")\"").unwrap();
+    assert_eq!(format_number(-12.3, &format5, &locale), "-(-Val: 12.3)");
+
+    // Case 6: Single positive section, number then text suffix with parentheses, negative value
+    // Excel: -12.3 (-)
+    let format6 = parse_number_format("0.0\" (-)\"").unwrap();
+    assert_eq!(format_number(-12.3, &format6, &locale), "-12.3 (-)");
+
+    // Case 7: Positive section, and Negative section that uses parentheses
+    let format7 = parse_number_format("0.0 \"Pos\";(0.0 \"Neg\")").unwrap();
+    assert_eq!(format_number(-12.3, &format7, &locale), "(12.3 Neg)");
+    assert_eq!(format_number(12.3, &format7, &locale), "12.3 Pos");
+
+    // Case 8: Positive section with literal minus, negative section uses parentheses.
+    // This tests that the negative section (with parens) is preferred for negative numbers
+    // over applying the single-section-negative-prefix rule to the positive section.
+    let format8 = parse_number_format("\"-PosPrefix \"0.0;(0.0 \"NegParen\")").unwrap();
+    assert_eq!(format_number(-45.6, &format8, &locale), "(45.6 NegParen)");
+    assert_eq!(format_number(45.6, &format8, &locale), "-PosPrefix 45.6");
+
+    // Case 9: Format from user, only positive section "-Val: "0.0
+    // This was the original failing case that `is_positive_section_fallback_for_negative` was designed to fix.
+    let format9 = parse_number_format("\"-Val: \"0.0").unwrap();
+    assert_eq!(format_number(-12.3, &format9, &locale), "--Val: 12.3");
+}
