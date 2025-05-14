@@ -19,9 +19,34 @@ fn test_simple_positive() {
 #[test]
 fn test_all_sections() {
     let result = parse_number_format("#,##0.00;[Red]-#,##0.00;0.00;\"Text: \"@").unwrap();
-    assert_eq!(result.positive_section.tokens.len(), 8);
+    assert_eq!(
+        result.positive_section.tokens,
+        vec![
+            FormatToken::DigitIfNeeded,
+            FormatToken::ThousandsSeparator,
+            FormatToken::DigitIfNeeded,
+            FormatToken::DigitIfNeeded,
+            FormatToken::DigitOrZero,
+            FormatToken::DecimalPoint,
+            FormatToken::DigitOrZero,
+            FormatToken::DigitOrZero,
+        ]
+    );
     assert!(result.negative_section.is_some());
-    assert_eq!(result.negative_section.as_ref().unwrap().tokens.len(), 10);
+    assert_eq!(
+        result.negative_section.as_ref().unwrap().tokens,
+        vec![
+            FormatToken::LiteralChar('-'),
+            FormatToken::DigitIfNeeded,
+            FormatToken::ThousandsSeparator,
+            FormatToken::DigitIfNeeded,
+            FormatToken::DigitIfNeeded,
+            FormatToken::DigitOrZero,
+            FormatToken::DecimalPoint,
+            FormatToken::DigitOrZero,
+            FormatToken::DigitOrZero,
+        ]
+    );
 
     let result_cond = parse_number_format("[>=1000]#,##0;[<1000]0.0;0;@").unwrap();
     assert!(result_cond.positive_section.condition.is_some());
