@@ -86,6 +86,8 @@ pub enum FormatToken {
 
     /// Currency symbol for locale-dependent formatting
     CurrencySymbolLocaleDefault,
+    /// Represents the "General" format for numbers
+    GeneralNumeric,
 }
 
 /// Represents the style (case) for AM/PM or A/P markers
@@ -151,6 +153,7 @@ impl FormatToken {
                 | FormatToken::DigitIfNeeded
                 | FormatToken::DigitOrSpace
                 | FormatToken::DecimalPoint
+                | FormatToken::GeneralNumeric
         )
     }
 

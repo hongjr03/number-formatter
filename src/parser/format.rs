@@ -22,6 +22,45 @@ use crate::types::*;
 /// let result = parse_number_format("0.00").unwrap();
 /// ```
 pub fn parse_number_format(input_str: &str) -> Result<NumberFormat, String> {
+    // Handle "General" format as a special case
+    // If the input string CONTAINS "general" (case-insensitive), treat it as General format.
+    if input_str.to_lowercase().contains("general") {
+        let general_section = FormatSection {
+            tokens: vec![FormatToken::GeneralNumeric],
+            color: None,
+            condition: None,
+            is_text_section: false,
+            num_scaling_commas: 0,
+            has_datetime: false,
+            has_text_format: false,
+            has_fraction: false,
+            fixed_denominator: None,
+            num_integer_part_tokens: 0,
+            num_fractional_part_tokens: 0,
+        };
+
+        let general_text_section = FormatSection {
+            tokens: vec![FormatToken::TextValue], // @ token
+            color: None,
+            condition: None,
+            is_text_section: true,
+            num_scaling_commas: 0,
+            has_datetime: false,
+            has_text_format: true,
+            has_fraction: false,
+            fixed_denominator: None,
+            num_integer_part_tokens: 0,
+            num_fractional_part_tokens: 0,
+        };
+
+        return Ok(NumberFormat {
+            positive_section: general_section,
+            negative_section: None,
+            zero_section: None,
+            text_section: Some(general_text_section),
+        });
+    }
+
     let mut input = input_str;
 
     let make_err_msg = |e, remaining: &str| -> String {

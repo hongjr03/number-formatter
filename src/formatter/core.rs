@@ -11,6 +11,79 @@ pub(super) fn format_value(
     locale: &LocaleSettings,
     is_positive_section_fallback_for_negative: bool, // True if positive_section is used for a negative original_value
 ) -> String {
+    // Handle GeneralNumeric first if it's the only token
+    if section.tokens.len() == 1 {
+        if let FormatToken::GeneralNumeric = section.tokens[0] {
+            if original_value_for_sign.is_nan() {
+                return "NaN".to_string(); // Consider locale for NaN if needed
+            }
+            if original_value_for_sign.is_infinite() {
+                return if original_value_for_sign.is_sign_positive() {
+                    "Infinity"
+                } else {
+                    "-Infinity"
+                }
+                .to_string();
+            }
+            if original_value_for_sign == 0.0 {
+                return "0".to_string();
+            }
+
+            let abs_val = original_value_for_sign.abs();
+            let mut s_val;
+
+            // Determine if scientific notation is needed
+            // Excel uses scientific for abs(value) >= 1E11 or (abs(value) < 1E-4 and non-zero)
+            // These thresholds are approximate and can depend on context/Excel version.
+            let use_scientific = abs_val >= 1E11 || (abs_val < 1E-4 && abs_val != 0.0);
+
+            if use_scientific {
+                // Format as X.YYYYYYE+ZZ (approx. 6-7 decimal places for mantissa)
+                s_val = format!("{:.6E}", original_value_for_sign);
+                // Ensure E is uppercase and exponent is two digits with sign
+                if let Some(e_pos) = s_val.find('e').or_else(|| s_val.find('E')) {
+                    let (mantissa, mut exponent_part) = s_val.split_at(e_pos);
+                    exponent_part = exponent_part
+                        .trim_start_matches('E')
+                        .trim_start_matches('e');
+                    let sign = if exponent_part.starts_with('-') {
+                        '-'
+                    } else {
+                        '+'
+                    };
+                    let num_str = exponent_part.trim_start_matches(['+', '-']);
+                    if let Ok(num) = num_str.parse::<i32>() {
+                        s_val = format!("{}E{}{:02}", mantissa, sign, num.abs());
+                    } else {
+                        // Fallback if exponent parsing fails, just ensure E is uppercase
+                        s_val = s_val.replace('e', "E");
+                    }
+                } else {
+                    // Should not happen if format! worked, but as a fallback
+                    s_val = original_value_for_sign.to_string().replace('e', "E");
+                }
+            } else {
+                s_val = original_value_for_sign.to_string();
+                // For non-scientific, f64::to_string() is generally good.
+                // It removes trailing .0 for whole numbers.
+                // Excel might limit total digits for General to ~11.
+                // This part can be refined if more precise Excel G_eneral digit limiting is needed.
+                // A simple check: if string is too long and has a decimal, truncate.
+                if s_val.contains('.') && s_val.len() > 12 {
+                    // Arbitrary length check
+                    let mut parts = s_val.split('.');
+                    if let (Some(int_part), Some(frac_part)) = (parts.next(), parts.next()) {
+                        let max_frac_len = 11_usize.saturating_sub(int_part.len());
+                        if frac_part.len() > max_frac_len {
+                            s_val = format!("{}.{}", int_part, &frac_part[..max_frac_len]);
+                        }
+                    }
+                }
+            }
+            return s_val;
+        }
+    }
+
     // Datetime and text formatting should take precedence or be handled by specific conditions
     if datetime::section_is_datetime_point_in_time(section) {
         return datetime::format_datetime(original_value_for_sign, section, locale);
@@ -19,7 +92,7 @@ pub(super) fn format_value(
         return datetime::format_duration(original_value_for_sign, section, locale);
     }
     if section.has_text_format {
-        return text::format_text_with_section(&original_value_for_sign.to_string(), section);
+        return text::format_text_with_section(&original_value_for_sign.to_string(), section, locale);
     }
 
     let analysis = super::fraction::analyze_fraction_pattern(section);
@@ -94,26 +167,15 @@ pub(super) fn format_value(
     });
 
     if is_text_output_mode {
-        let mut result = String::new(); // Shadowing outer result, which is fine here.
+        let mut result = String::new(); 
         for token in &section.tokens {
             match token {
                 FormatToken::LiteralChar(c) => result.push(*c),
                 FormatToken::QuotedText(text) => result.push_str(text),
-                FormatToken::ThousandsSeparator => {}
-                FormatToken::TextValue => {
-                    // This case should ideally not be reached if the early @ check is in place.
-                    // If it is, it means @ was present but the early exit didn't happen (should not occur).
-                    // Or, this is a TextValue token in a section that *doesn't* have the overriding @ behavior,
-                    // which implies a misunderstanding of how TextValue is used outside of the "@ overrides all" rule.
-                    // For now, treat as a non-event if reached, as primary @ logic is at function start.
-                }
                 FormatToken::CurrencySymbolLocaleDefault => {
                     result.push_str(&locale.currency_symbol);
                 }
-                FormatToken::SkipWidth(_) => {
-                    // As per spec "To create a space that is the width of a character... include an underscore character (_), followed by the character"
-                }
-                _ => {} // Other tokens like SkipWidth, Fill if any, are ignored.
+                _ => {} 
             }
         }
         return result;

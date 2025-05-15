@@ -39,7 +39,7 @@ pub mod text;
 pub fn format_number(value: f64, format: &NumberFormat, locale: &LocaleSettings) -> String {
     // Handle special cases first: text value
     if value.is_nan() && format.text_section.is_some() {
-        return text::format_text("NaN", format);
+        return text::format_text("NaN", format, locale);
     }
 
     let section_to_use = sections::select_section(value, format);
