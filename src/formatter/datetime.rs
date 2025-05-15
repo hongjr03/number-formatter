@@ -87,6 +87,42 @@ fn convert_f64_to_datetime(value: f64) -> Option<NaiveDateTime> {
     Some(NaiveDateTime::new(current_date_part, time_part))
 }
 
+/// Helper function to check if a section contains any date/time point-in-time tokens
+pub(super) fn section_is_datetime_point_in_time(section: &FormatSection) -> bool {
+    section.tokens.iter().any(|token| {
+        matches!(
+            token,
+            FormatToken::YearTwoDigit
+                | FormatToken::YearFourDigit
+                | FormatToken::MonthNum
+                | FormatToken::MonthNumPadded
+                | FormatToken::MonthAbbr
+                | FormatToken::MonthFullName
+                | FormatToken::MonthLetter
+                | FormatToken::DayNum
+                | FormatToken::DayNumPadded
+                | FormatToken::WeekdayAbbr
+                | FormatToken::WeekdayFullName
+                | FormatToken::Hour12Or24
+                | FormatToken::Hour12Or24Padded
+                | FormatToken::AmPm(_)
+                | FormatToken::AP(_)
+                | FormatToken::MonthOrMinute1
+                | FormatToken::MonthOrMinute2
+        )
+    })
+}
+
+/// Helper function to check if a section contains duration-specific tokens
+pub(super) fn section_is_duration(section: &FormatSection) -> bool {
+    section.tokens.iter().any(|token| {
+        matches!(
+            token,
+            FormatToken::ElapsedHours | FormatToken::ElapsedMinutes | FormatToken::ElapsedSeconds
+        )
+    })
+}
+
 pub(super) fn format_datetime(
     value: f64,
     section: &FormatSection,

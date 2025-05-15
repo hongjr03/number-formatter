@@ -231,6 +231,12 @@ pub struct FormatSection {
     pub is_text_section: bool,
     /// Number of commas at the end of number placeholders for scaling
     pub num_scaling_commas: u8,
+    pub has_datetime: bool,    // True if section contains any date/time tokens
+    pub has_text_format: bool, // True if section contains @ (text format)
+    pub has_fraction: bool,    // True if section contains / (for fractions, not date)
+    pub fixed_denominator: Option<u32>, // For fraction formats like #/16
+    pub num_integer_part_tokens: usize, // Count of 0#? before decimal or for non-decimal numbers
+    pub num_fractional_part_tokens: usize, // Count of 0#? after decimal
 }
 
 /// Represents a complete number format with all sections

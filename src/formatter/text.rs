@@ -18,13 +18,13 @@ pub(super) fn format_text(text: &str, format: &NumberFormat) -> String {
 }
 
 /// Format a text value with a text section
-fn format_text_with_section(text: &str, section: &FormatSection) -> String {
+pub(super) fn format_text_with_section(text_to_insert: &str, section: &FormatSection) -> String {
     let mut result = String::new();
 
     for token in &section.tokens {
         match token {
             FormatToken::TextValue => {
-                result.push_str(text);
+                result.push_str(text_to_insert);
             }
             FormatToken::LiteralChar(c) => {
                 result.push(*c);

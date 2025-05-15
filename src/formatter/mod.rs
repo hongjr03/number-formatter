@@ -8,11 +8,13 @@
 
 use crate::types::{FormatSection, LocaleSettings, NumberFormat};
 
-mod core;
-mod datetime;
-mod exponential;
-mod sections;
-mod text;
+pub mod core;
+pub mod datetime;
+pub mod exponential;
+pub mod fraction;
+pub mod sections;
+pub mod standard_numeric;
+pub mod text;
 
 /// Format a number according to the specified number format pattern
 ///

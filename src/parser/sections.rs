@@ -111,6 +111,78 @@ pub fn parse_one_section(
             (None, all_tokens)
         };
 
+        // --- BEGIN: Added logic for fixed denominator and fraction detection ---
+        let mut final_tokens: Vec<FormatToken> = Vec::new();
+        let mut temp_fixed_denominator: Option<u32> = None;
+        let mut temp_has_fraction = false; // Will be set if a non-date slash is found
+        let mut temp_has_datetime = false; // Will be set if any datetime token is found
+        let mut temp_has_text_format = false; // For @
+        let mut temp_num_integer_part_tokens = 0;
+        let mut temp_num_fractional_part_tokens = 0;
+        let mut in_integer_part = true; // True before a decimal point is encountered (for 0#? counting)
+        // or if no decimal point at all.
+
+        let mut tokens_iter = tokens_after_color.into_iter().peekable();
+        while let Some(token) = tokens_iter.next() {
+            if token.is_datetime_placeholder() {
+                temp_has_datetime = true;
+            }
+            if matches!(token, FormatToken::TextValue) {
+                temp_has_text_format = true;
+            }
+
+            match token {
+                FormatToken::LiteralChar('/') => {
+                    if !temp_has_datetime {
+                        let mut den_str_chars: Vec<char> = Vec::new();
+                        while let Some(FormatToken::LiteralChar(ch)) = tokens_iter.peek() {
+                            if ch.is_ascii_digit() {
+                                den_str_chars.push(*ch);
+                                tokens_iter.next(); // Consume the digit char
+                            } else {
+                                break; // Not a digit, stop collecting
+                            }
+                        }
+
+                        if !den_str_chars.is_empty() {
+                            let den_str: String = den_str_chars.iter().collect();
+                            if let Ok(den_val) = den_str.parse::<u32>() {
+                                temp_fixed_denominator = Some(den_val);
+                                temp_has_fraction = true;
+                                continue;
+                            }
+                            final_tokens.push(FormatToken::LiteralChar('/'));
+                            temp_has_fraction = true;
+                        } else {
+                            final_tokens.push(FormatToken::LiteralChar('/'));
+                            temp_has_fraction = true;
+                        }
+                    } else {
+                        final_tokens.push(FormatToken::LiteralChar('/'));
+                    }
+                }
+                FormatToken::DecimalPoint => {
+                    in_integer_part = false;
+                    final_tokens.push(token);
+                }
+                FormatToken::DigitOrZero
+                | FormatToken::DigitIfNeeded
+                | FormatToken::DigitOrSpace => {
+                    if in_integer_part {
+                        temp_num_integer_part_tokens += 1;
+                    } else {
+                        temp_num_fractional_part_tokens += 1;
+                    }
+                    final_tokens.push(token);
+                }
+                _ => {
+                    final_tokens.push(token);
+                }
+            }
+        }
+        tokens_after_color = final_tokens; // Replace with processed tokens
+        // --- END: Added logic ---
+
         let mut num_scaling_commas_val: u8 = 0;
 
         // Find the index of the last numeric-related token (digit placeholders, decimal, exponential)
@@ -165,6 +237,12 @@ pub fn parse_one_section(
             is_text_section: is_text_s,
             color: color_opt,
             num_scaling_commas: num_scaling_commas_val,
+            has_datetime: temp_has_datetime,
+            has_text_format: temp_has_text_format,
+            has_fraction: temp_has_fraction,
+            fixed_denominator: temp_fixed_denominator,
+            num_integer_part_tokens: temp_num_integer_part_tokens,
+            num_fractional_part_tokens: temp_num_fractional_part_tokens,
         })
     }
 }
