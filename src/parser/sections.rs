@@ -48,6 +48,7 @@ pub fn parse_section_tokens() -> impl FnMut(&mut &str) -> ModalResult<Vec<Format
                 parse_decimal_point,
                 parse_thousands_separator,
                 parse_percentage,
+                parse_locale_currency_symbol,
                 parse_exponential,
             ));
 

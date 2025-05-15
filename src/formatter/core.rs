@@ -99,6 +99,20 @@ pub(super) fn format_value(
             match token {
                 FormatToken::LiteralChar(c) => result.push(*c),
                 FormatToken::QuotedText(text) => result.push_str(text),
+                FormatToken::ThousandsSeparator => {}
+                FormatToken::TextValue => {
+                    // This case should ideally not be reached if the early @ check is in place.
+                    // If it is, it means @ was present but the early exit didn't happen (should not occur).
+                    // Or, this is a TextValue token in a section that *doesn't* have the overriding @ behavior,
+                    // which implies a misunderstanding of how TextValue is used outside of the "@ overrides all" rule.
+                    // For now, treat as a non-event if reached, as primary @ logic is at function start.
+                }
+                FormatToken::CurrencySymbolLocaleDefault => {
+                    result.push_str(&locale.currency_symbol);
+                }
+                FormatToken::SkipWidth(_) => {
+                    // As per spec "To create a space that is the width of a character... include an underscore character (_), followed by the character"
+                }
                 _ => {} // Other tokens like SkipWidth, Fill if any, are ignored.
             }
         }

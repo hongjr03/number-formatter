@@ -309,6 +309,9 @@ pub(super) fn format_standard_numeric_core(
             }
             FormatToken::ThousandsSeparator => {}
             FormatToken::TextValue => {}
+            FormatToken::CurrencySymbolLocaleDefault => {
+                result.push_str(&locale.currency_symbol);
+            }
             FormatToken::SkipWidth(_) => {
                 result.push(' ');
             }

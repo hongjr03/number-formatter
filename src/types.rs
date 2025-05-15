@@ -83,6 +83,9 @@ pub enum FormatToken {
     MonthOrMinute1,
     /// Double m, might be month or minute, to be determined by context
     MonthOrMinute2,
+
+    /// Currency symbol for locale-dependent formatting
+    CurrencySymbolLocaleDefault,
 }
 
 /// Represents the style (case) for AM/PM or A/P markers
@@ -279,6 +282,15 @@ pub struct LocaleSettings {
     /// Full month names, January to December, e.g., `["January", "February", ..., "December"]`.
     /// Should contain 12 elements, starting with January.
     pub month_names: [String; 12],
+
+    /// Currency symbol for locale-dependent formatting
+    pub currency_symbol: String,
+
+    /// Full month names, January to December, e.g., `["January", "February", ..., "December"]`.
+    pub month_names_full: Vec<String>,
+
+    /// Short month names, January to December, e.g., `["Jan", "Feb", ..., "Dec"]`.
+    pub month_names_abbr: Vec<String>,
 }
 
 impl Default for LocaleSettings {
@@ -286,7 +298,7 @@ impl Default for LocaleSettings {
         LocaleSettings {
             decimal_point: '.',
             thousands_separator: ',',
-
+            currency_symbol: "$".to_string(),
             ampm_markers: ["AM".to_string(), "PM".to_string()],
             short_day_names: [
                 "Sun".to_string(),
@@ -333,6 +345,34 @@ impl Default for LocaleSettings {
                 "October".to_string(),
                 "November".to_string(),
                 "December".to_string(),
+            ],
+            month_names_full: vec![
+                "January".to_string(),
+                "February".to_string(),
+                "March".to_string(),
+                "April".to_string(),
+                "May".to_string(),
+                "June".to_string(),
+                "July".to_string(),
+                "August".to_string(),
+                "September".to_string(),
+                "October".to_string(),
+                "November".to_string(),
+                "December".to_string(),
+            ],
+            month_names_abbr: vec![
+                "Jan".to_string(),
+                "Feb".to_string(),
+                "Mar".to_string(),
+                "Apr".to_string(),
+                "May".to_string(),
+                "Jun".to_string(),
+                "Jul".to_string(),
+                "Aug".to_string(),
+                "Sep".to_string(),
+                "Oct".to_string(),
+                "Nov".to_string(),
+                "Dec".to_string(),
             ],
         }
     }
@@ -383,6 +423,24 @@ impl LocaleSettings {
     /// Expects an array of twelve string slices.
     pub fn with_month_names(mut self, names: [&str; 12]) -> Self {
         self.month_names = names.map(|s| s.to_string());
+        self
+    }
+
+    /// Sets the currency symbol.
+    pub fn with_currency_symbol(mut self, symbol: String) -> Self {
+        self.currency_symbol = symbol;
+        self
+    }
+
+    /// Sets the full month names (January to December).
+    pub fn with_month_names_full(mut self, names: Vec<String>) -> Self {
+        self.month_names_full = names;
+        self
+    }
+
+    /// Sets the short month names (January to December).
+    pub fn with_month_names_abbr(mut self, names: Vec<String>) -> Self {
+        self.month_names_abbr = names;
         self
     }
 }

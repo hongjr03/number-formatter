@@ -282,3 +282,10 @@ pub fn parse_color(input: &mut &str) -> ModalResult<FormatToken> {
         .parse_next(input)
         .map_err(ErrMode::Backtrack)
 }
+
+pub fn parse_locale_currency_symbol(input: &mut &str) -> ModalResult<FormatToken> {
+    literal('¤')
+        .value(FormatToken::CurrencySymbolLocaleDefault)
+        .parse_next(input)
+        .map_err(ErrMode::Backtrack)
+}
