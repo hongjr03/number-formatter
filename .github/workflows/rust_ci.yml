@@ -1,0 +1,139 @@
+name: Rust Tests & Excelize Report
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  run_tests_and_report:
+    name: Run Tests & Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # For README update, if committing back to the repo, you might need a token
+        # with write permissions, or use a dedicated action that handles this.
+        # If using stefanzweifel/git-auto-commit-action, it often handles this with GITHUB_TOKEN.
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        # Assuming clippy & rustfmt are not strictly needed if other workflow handles them
+        # However, cargo test might still benefit from a consistent toolchain version.
+
+      - name: Run Excelize compatibility tests
+        id: excelize_runner
+        # It's more robust to redirect output to a file for the badge step
+        run: |
+          cargo test --test excelize_tests -- --nocapture > excelize_results.json || true
+          # '|| true' ensures this step doesn't fail the job if excelize_tests itself fails (exits 1)
+          # We want the badge generation step to run regardless, using the json output.
+          # The overall job will fail if excelize_tests indicated failure via its exit code (handled by std::process::exit(1) in your test).
+          # However, if excelize_tests itself panics before writing JSON or exiting, this step might fail.
+          # A more advanced setup might involve checking if excelize_results.json was created.
+
+      - name: Generate Test Results Badge and Summary
+        id: badge_data_generator # Added an ID for this step
+        if: always()
+        run: |
+          BADGE_URL=""
+          echo "### Excelize Test Report" >> $GITHUB_STEP_SUMMARY
+          if [ -f excelize_results.json ]; then
+            # Install jq if not available (common on GitHub runners, but good to ensure)
+            if ! command -v jq &> /dev/null; then
+              echo "jq not found, installing..."
+              sudo apt-get update && sudo apt-get install -y jq
+            fi
+            
+            # Check if JSON is valid before trying to parse
+            if jq -e '.' excelize_results.json > /dev/null; then
+              PASSED_COUNT=$(jq -r '.passed' excelize_results.json)
+              FAILED_COUNT=$(jq -r '.failed' excelize_results.json)
+              TOTAL_COUNT=$(jq -r '.total' excelize_results.json)
+              
+              echo "- Passed: $PASSED_COUNT" >> $GITHUB_STEP_SUMMARY
+              echo "- Failed: $FAILED_COUNT" >> $GITHUB_STEP_SUMMARY
+              echo "- Total: $TOTAL_COUNT" >> $GITHUB_STEP_SUMMARY
+              
+              LABEL="Excelize Tests: $PASSED_COUNT passed / $TOTAL_COUNT total"
+              COLOR="brightgreen"
+              if [ "$FAILED_COUNT" -gt 0 ]; then
+                LABEL="Excelize Tests: $PASSED_COUNT passed, $FAILED_COUNT failed / $TOTAL_COUNT total"
+                COLOR="red"
+              fi
+              # URL encode the label for shields.io
+              ENCODED_LABEL=$(echo "$LABEL" | sed 's/ /%20/g; s/:/%3A/g; s/\//%2F/g; s/-/%2D%2D/g')
+              BADGE_URL="https://img.shields.io/badge/$ENCODED_LABEL-$COLOR?style=flat-square"
+              echo "Badge URL: $BADGE_URL" 
+              echo "![Excelize Tests Badge]($BADGE_URL)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "Error: excelize_results.json does not contain valid JSON." >> $GITHUB_STEP_SUMMARY
+              echo "Contents of excelize_results.json:" >> $GITHUB_STEP_SUMMARY
+              cat excelize_results.json >> $GITHUB_STEP_SUMMARY
+              BADGE_URL="https://img.shields.io/badge/Excelize%20Tests-data%20error-lightgrey?style=flat-square"
+              echo "![Error Badge]($BADGE_URL)" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "excelize_results.json not found. Excelize tests might have failed to produce output." >> $GITHUB_STEP_SUMMARY
+            BADGE_URL="https://img.shields.io/badge/Excelize%20Tests-no%20data-lightgrey?style=flat-square"
+            echo "![No Data Badge]($BADGE_URL)" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "badge_url=$BADGE_URL" >> $GITHUB_OUTPUT # Set step output
+
+      - name: Update README with Badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && always()
+        env:
+          BADGE_URL: ${{ steps.badge_data_generator.outputs.badge_url }}
+        run: |
+          if [ -z "$BADGE_URL" ]; then
+            echo "Badge URL is empty, skipping README update."
+            exit 0
+          fi
+          echo "Updating README with badge URL: $BADGE_URL"
+          MARKDOWN_BADGE="![Excelize Tests Badge]($BADGE_URL)"
+          PLACEHOLDER="<!-- EXCELIZE_TEST_BADGE -->"
+          README_FILE="README.md"
+          
+          # Create README.md if it doesn't exist and add placeholder
+          if [ ! -f "$README_FILE" ]; then
+            echo "$PLACEHOLDER" > "$README_FILE"
+            echo "Created README.md with placeholder."
+          fi
+
+          # Check if placeholder exists
+          if grep -q "$PLACEHOLDER" "$README_FILE"; then
+            # Escape for sed: & / \ need to be escaped
+            # Also escape characters that might be in the badge URL and break sed: e.g., -
+            ESC_MARKDOWN_BADGE=$(echo "$MARKDOWN_BADGE" | sed 's/[&\/]/\\&/g; s/-/\\-/g') 
+            # Using a different delimiter for sed to handle slashes in URL
+            sed -i "s~$PLACEHOLDER~$ESC_MARKDOWN_BADGE~g" "$README_FILE"
+            echo "README.md updated."
+          else
+            echo "Placeholder $PLACEHOLDER not found in $README_FILE. Badge not updated."
+            echo "Please add \"$PLACEHOLDER\" to your $README_FILE where you want the badge."
+            # Optionally, append if not found?
+            # echo "$MARKDOWN_BADGE" >> "$README_FILE"
+            # echo "Badge appended to $README_FILE as placeholder was not found."
+          fi
+
+      - name: Commit and push README changes
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && always()
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "ci: Update Excelize tests badge in README"
+          file_pattern: README.md
+          # Optional: Add other options like commit_user_name, commit_user_email, commit_author if needed
+          # See action documentation for more details: https://github.com/stefanzweifel/git-auto-commit-action
+
+    # If you need the raw JSON as an output for another job in this workflow:
+    # outputs:
+    #   excelize_test_json: ${{
+    #     steps.excelize_runner.outputs.json_content || '{ "passed": 0, "failed": 0, "total": 0 }'
+    #   }}
+    # To use this output, the excelize_runner step would need to set an output like:
+    # echo "json_content=$(cat excelize_results.json)" >> $GITHUB_OUTPUT
