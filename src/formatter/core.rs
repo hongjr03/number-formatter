@@ -92,7 +92,11 @@ pub(super) fn format_value(
         return datetime::format_duration(original_value_for_sign, section, locale);
     }
     if section.has_text_format {
-        return text::format_text_with_section(&original_value_for_sign.to_string(), section, locale);
+        return text::format_text_with_section(
+            &original_value_for_sign.to_string(),
+            section,
+            locale,
+        );
     }
 
     let analysis = super::fraction::analyze_fraction_pattern(section);
@@ -167,7 +171,7 @@ pub(super) fn format_value(
     });
 
     if is_text_output_mode {
-        let mut result = String::new(); 
+        let mut result = String::new();
         for token in &section.tokens {
             match token {
                 FormatToken::LiteralChar(c) => result.push(*c),
@@ -175,7 +179,7 @@ pub(super) fn format_value(
                 FormatToken::CurrencySymbolLocaleDefault => {
                     result.push_str(&locale.currency_symbol);
                 }
-                _ => {} 
+                _ => {}
             }
         }
         return result;

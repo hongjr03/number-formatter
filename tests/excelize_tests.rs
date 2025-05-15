@@ -1,79 +1,109 @@
-#[cfg(test)]
-mod tests {
-    use number_format::types::LocaleSettings;
-    use number_format::{format_number, parse_number_format};
-    use serde::Deserialize;
-    use std::fs;
-    use std::path::{Path, PathBuf};
+#![allow(unused)]
 
-    #[derive(Debug, Deserialize)]
-    struct TestCase {
-        #[allow(dead_code)]
-        value: f64,
-        #[allow(dead_code)]
-        format: String,
-        #[allow(dead_code)]
-        expected: String,
-    }
+use number_format::types::LocaleSettings;
+use number_format::{format_number, parse_number_format};
+use serde::Deserialize;
+use std::fs;
+use std::io::{self, Write};
 
-    #[derive(Debug, Deserialize)]
-    struct TestCases {
-        #[allow(dead_code)]
-        cases: Vec<TestCase>,
-    }
+#[derive(Debug, Deserialize)]
+struct TestCase {
+    value: serde_json::Value,
+    format: String,
+    expected: String,
+    name: Option<String>,
+    comment: Option<String>,
+}
 
-    #[allow(dead_code)]
-    fn run_test_case(case: &TestCase, locale_settings: &LocaleSettings) -> Result<(), String> {
-        let format = parse_number_format(&case.format)
-            .map_err(|e| format!("Format parse error: {:?}", e))?;
+#[derive(Debug, Deserialize)]
+struct TestCases {
+    cases: Vec<TestCase>,
+}
 
-        let result = format_number(case.value, &format, locale_settings);
+#[test]
+#[cfg(feature = "run_excelize_tests")]
+fn run_all_excelize_toml_cases() {
+    let toml_content = fs::read_to_string("tests/excelize-numfmt-test.toml")
+        .expect("Failed to read tests/excelize-numfmt-test.toml");
+    let test_data: TestCases = toml::from_str(&toml_content)
+        .expect("Failed to parse TOML from tests/excelize-numfmt-test.toml");
 
-        if result != case.expected {
-            return Err(format!(
-                "\n✗ Mismatch for value: {}\nFormat:     \"{}\"\nExpected:   \"{}\"\nActual:     \"{}\"",
-                case.value, case.format, case.expected, result
-            ));
-        }
+    let mut passed_count = 0;
+    let mut failed_count = 0;
+    let total_count = test_data.cases.len();
 
-        Ok(())
-    }
-
-    #[allow(dead_code)]
-    fn main() {
-        let toml_path: PathBuf = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("tests")
-            .join("excelize-numfmt-test.toml");
-
-        let toml_content = fs::read_to_string(&toml_path)
-            .unwrap_or_else(|e| panic!("Failed to read TOML file {}: {}", toml_path.display(), e));
-
-        let test_suite: TestCases = toml::from_str(&toml_content)
-            .unwrap_or_else(|e| panic!("Failed to parse TOML file {}: {}", toml_path.display(), e));
-
-        let default_locale = LocaleSettings::default();
-        let mut passed = 0;
-        let mut failed = 0;
-
-        for (i, case) in test_suite.cases.iter().enumerate() {
-            match run_test_case(case, &default_locale) {
-                Ok(_) => passed += 1,
-                Err(msg) => {
-                    failed += 1;
-                    // Print immediately for CI logs if --nocapture is used
-                    eprintln!("\n[Case {}] {}", i + 1, msg);
-                }
+    // Assuming default locale settings are sufficient or can be configured as needed.
+    // The summary mentioned `LocaleSettings::default_for_currency_symbol("¤")` was used before.
+    // Let's use a default or a specific one for consistency if needed.
+    // For now, if `format_number` takes Option<&LocaleSettings>, None might be okay for some tests,
+    // but currency tests might need specific locale.
+    // The function signature from summary: format_number(value: f64, format_str: &str, text_value: Option<&str>, locale: Option<&LocaleSettings>) -> String
+    // Let's stick to None for locale if not specified or make it configurable if tests require it.
+    // For the `¤` issue, a specific locale was key. Let's use a default that allows `¤` to work if possible.
+    let locale_settings_default = LocaleSettings::default();
+    for case in test_data.cases.iter() {
+        let num_value = match &case.value {
+            serde_json::Value::Number(n) => n.as_f64().unwrap_or(f64::NAN),
+            serde_json::Value::String(s) if s.to_lowercase() == "nan" => f64::NAN,
+            serde_json::Value::String(s)
+                if s.to_lowercase() == "inf" || s.to_lowercase() == "+inf" =>
+            {
+                f64::INFINITY
             }
+            serde_json::Value::String(s) if s.to_lowercase() == "-inf" => f64::NEG_INFINITY,
+            // If it's a string that can be parsed as a number, attempt that.
+            serde_json::Value::String(s) => s.parse::<f64>().unwrap_or(f64::NAN), // Or handle text value differently
+            _ => f64::NAN, // Default for other types or if strict numeric context
+        };
+
+        let format = parse_number_format(&case.format)
+            .map_err(|e| {
+                eprintln!("Error parsing format: {}", e);
+                "N/A"
+            });
+
+        // if format cannot be unwrapped, skip the test and increment the failed count
+        if !format.is_ok() {
+            failed_count += 1;
+            continue;
         }
 
-        // Final summary output in a simple key-value format
-        println!("PASSED:{}", passed);
-        println!("FAILED:{}", failed);
-        println!("TOTAL:{}", passed + failed);
+        let actual_result = format_number(
+            num_value,
+            &format.unwrap(),
+            // Pass text_value, which could be the original string if value was a string.
+            &locale_settings_default,
+        );
 
-        if failed > 0 {
-            // Exit with a non-zero status code if any tests failed
-            std::process::exit(1);
+        if actual_result == case.expected {
+            passed_count += 1;
+        } else {
+            failed_count += 1;
+            eprintln!(
+                "Test FAILED: Name: '{}', Comment: '{}'\n  Format: '{}'\n  Value: {:?}\n  Expected: '{}'\n  Actual:   '{}'",
+                case.name.as_deref().unwrap_or("N/A"),
+                case.comment.as_deref().unwrap_or("N/A"),
+                case.format,
+                case.value,
+                case.expected,
+                actual_result
+            );
         }
+    }
+
+    // Ensure this output is exactly what the CI script expects to parse.
+    println!(
+        "PASSED:{}\nFAILED:{}\nTOTAL:{}",
+        passed_count, failed_count, total_count
+    );
+
+    // Flush stdout to ensure output is written before panic or exit.
+    io::stdout().flush().unwrap();
+
+    if failed_count > 0 {
+        panic!(
+            "{} of {} tests failed from excelize-numfmt-test.toml",
+            failed_count, total_count
+        );
     }
 }

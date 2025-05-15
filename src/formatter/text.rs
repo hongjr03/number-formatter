@@ -1,4 +1,4 @@
-use crate::types::{FormatSection, FormatToken, NumberFormat, LocaleSettings};
+use crate::types::{FormatSection, FormatToken, LocaleSettings, NumberFormat};
 
 /// Format a text value according to the specified number format pattern
 ///
@@ -19,7 +19,11 @@ pub(super) fn format_text(text: &str, format: &NumberFormat, locale: &LocaleSett
 }
 
 /// Format a text value with a text section
-pub(super) fn format_text_with_section(text_to_insert: &str, section: &FormatSection, locale: &LocaleSettings) -> String {
+pub(super) fn format_text_with_section(
+    text_to_insert: &str,
+    section: &FormatSection,
+    locale: &LocaleSettings,
+) -> String {
     let mut result = String::new();
 
     for token in &section.tokens {

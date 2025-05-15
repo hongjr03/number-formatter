@@ -10,3 +10,7 @@ winnow = "0.7.10"
 [dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8"
+serde_json = "1.0"
+
+[features]
+run_excelize_tests = []
