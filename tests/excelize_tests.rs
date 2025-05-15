@@ -66,13 +66,10 @@ mod tests {
             }
         }
 
-        // Final summary output
-        println!(
-            "{{ \"passed\": {}, \"failed\": {}, \"total\": {} }}", // JSON output for easier parsing
-            passed,
-            failed,
-            passed + failed
-        );
+        // Final summary output in a simple key-value format
+        println!("PASSED:{}", passed);
+        println!("FAILED:{}", failed);
+        println!("TOTAL:{}", passed + failed);
 
         if failed > 0 {
             // Exit with a non-zero status code if any tests failed
