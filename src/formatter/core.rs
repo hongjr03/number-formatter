@@ -11,6 +11,83 @@ pub(super) fn format_value(
     locale: &LocaleSettings,
     is_positive_section_fallback_for_negative: bool, // True if positive_section is used for a negative original_value
 ) -> String {
+    // Handle empty format string as General
+    if section.tokens.is_empty() {
+        if original_value_for_sign.is_nan() {
+            return "NaN".to_string();
+        }
+        if original_value_for_sign.is_infinite() {
+            return if original_value_for_sign.is_sign_positive() {
+                "Infinity"
+            } else {
+                "-Infinity"
+            }
+            .to_string();
+        }
+        if original_value_for_sign == 0.0 {
+            return "0".to_string();
+        }
+
+        let abs_val = original_value_for_sign.abs();
+        let mut s_val;
+        let use_scientific = abs_val >= 1E11 || (abs_val < 1E-4 && abs_val != 0.0);
+
+        if use_scientific {
+            s_val = format!("{:.6E}", original_value_for_sign);
+            if let Some(e_pos) = s_val.find('e').or_else(|| s_val.find('E')) {
+                let (mantissa, mut exponent_part) = s_val.split_at(e_pos);
+                exponent_part = exponent_part
+                    .trim_start_matches('E')
+                    .trim_start_matches('e');
+                let sign = if exponent_part.starts_with('-') {
+                    '-'
+                } else {
+                    '+'
+                };
+                let num_str = exponent_part.trim_start_matches(['+', '-']);
+                if let Ok(num) = num_str.parse::<i32>() {
+                    s_val = format!("{}E{}{:02}", mantissa, sign, num.abs());
+                }
+            } else {
+                s_val = original_value_for_sign.to_string().replace('e', "E"); // Fallback
+            }
+        } else {
+            s_val = original_value_for_sign.to_string();
+            let effective_len_check = if original_value_for_sign < 0.0 {
+                12
+            } else {
+                11
+            };
+            if s_val.contains('.') && s_val.len() > effective_len_check {
+                if let Some((full_int_part, frac_part)) = s_val.split_once('.') {
+                    let (sign_prefix, numeric_int_part_str) =
+                        if let Some(stripped) = full_int_part.strip_prefix('-') {
+                            ("-", stripped)
+                        } else {
+                            ("", full_int_part)
+                        };
+                    let numeric_int_digits_count = numeric_int_part_str.len();
+                    let allowed_frac_digits = 10_usize.saturating_sub(numeric_int_digits_count);
+                    if frac_part.len() > allowed_frac_digits {
+                        if allowed_frac_digits == 0 {
+                            s_val = format!("{}{}", sign_prefix, numeric_int_part_str);
+                        } else {
+                            s_val = format!(
+                                "{}{}.{}",
+                                sign_prefix,
+                                numeric_int_part_str,
+                                &frac_part[..allowed_frac_digits]
+                            );
+                        }
+                    } else if allowed_frac_digits == 0 && !frac_part.is_empty() {
+                        s_val = format!("{}{}", sign_prefix, numeric_int_part_str);
+                    }
+                }
+            }
+        }
+        return s_val;
+    }
+
     // Handle GeneralNumeric first if it's the only token
     if section.tokens.len() == 1 {
         if let FormatToken::GeneralNumeric = section.tokens[0] {
@@ -66,16 +143,41 @@ pub(super) fn format_value(
                 s_val = original_value_for_sign.to_string();
                 // For non-scientific, f64::to_string() is generally good.
                 // It removes trailing .0 for whole numbers.
-                // Excel might limit total digits for General to ~11.
-                // This part can be refined if more precise Excel G_eneral digit limiting is needed.
-                // A simple check: if string is too long and has a decimal, truncate.
-                if s_val.contains('.') && s_val.len() > 12 {
-                    // Arbitrary length check
-                    let mut parts = s_val.split('.');
-                    if let (Some(int_part), Some(frac_part)) = (parts.next(), parts.next()) {
-                        let max_frac_len = 11_usize.saturating_sub(int_part.len());
-                        if frac_part.len() > max_frac_len {
-                            s_val = format!("{}.{}", int_part, &frac_part[..max_frac_len]);
+                // Targetting around 10 significant digits for General format.
+
+                // If s_val contains a decimal point and its total length is too long for ~10 sig digits.
+                let effective_len_check = if original_value_for_sign < 0.0 {
+                    12
+                } else {
+                    11
+                };
+
+                if s_val.contains('.') && s_val.len() > effective_len_check {
+                    if let Some((full_int_part, frac_part)) = s_val.split_once('.') {
+                        let (sign_prefix, numeric_int_part_str) =
+                            if let Some(stripped) = full_int_part.strip_prefix('-') {
+                                ("-", stripped)
+                            } else {
+                                ("", full_int_part)
+                            };
+
+                        let numeric_int_digits_count = numeric_int_part_str.len();
+
+                        let allowed_frac_digits = 10_usize.saturating_sub(numeric_int_digits_count);
+
+                        if frac_part.len() > allowed_frac_digits {
+                            if allowed_frac_digits == 0 {
+                                s_val = format!("{}{}", sign_prefix, numeric_int_part_str);
+                            } else {
+                                s_val = format!(
+                                    "{}{}.{}",
+                                    sign_prefix,
+                                    numeric_int_part_str,
+                                    &frac_part[..allowed_frac_digits]
+                                );
+                            }
+                        } else if allowed_frac_digits == 0 && !frac_part.is_empty() {
+                            s_val = format!("{}{}", sign_prefix, numeric_int_part_str);
                         }
                     }
                 }
@@ -85,11 +187,11 @@ pub(super) fn format_value(
     }
 
     // Datetime and text formatting should take precedence or be handled by specific conditions
-    if datetime::section_is_datetime_point_in_time(section) {
-        return datetime::format_datetime(original_value_for_sign, section, locale);
-    }
     if datetime::section_is_duration(section) {
         return datetime::format_duration(original_value_for_sign, section, locale);
+    }
+    if datetime::section_is_datetime_point_in_time(section) {
+        return datetime::format_datetime(original_value_for_sign, section, locale);
     }
     if section.has_text_format {
         return text::format_text_with_section(

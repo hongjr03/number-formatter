@@ -78,6 +78,12 @@ pub enum FormatToken {
     ElapsedMinutes,
     /// Elapsed seconds [s]
     ElapsedSeconds,
+    /// Elapsed hours [hh]
+    ElapsedHoursPadded,
+    /// Elapsed minutes [mm]
+    ElapsedMinutesPadded,
+    /// Elapsed seconds [ss]
+    ElapsedSecondsPadded,
 
     /// Single m, might be month or minute, to be determined by context
     MonthOrMinute1,

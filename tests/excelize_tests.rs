@@ -56,11 +56,10 @@ fn run_all_excelize_toml_cases() {
             _ => f64::NAN, // Default for other types or if strict numeric context
         };
 
-        let format = parse_number_format(&case.format)
-            .map_err(|e| {
-                eprintln!("Error parsing format: {}", e);
-                "N/A"
-            });
+        let format = parse_number_format(&case.format).map_err(|e| {
+            eprintln!("Error parsing format: {}", e);
+            "N/A"
+        });
 
         // if format cannot be unwrapped, skip the test and increment the failed count
         if !format.is_ok() {

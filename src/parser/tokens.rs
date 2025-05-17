@@ -1,27 +1,25 @@
 use winnow::ascii::Caseless;
 use winnow::combinator::{alt, delimited, preceded, repeat};
-use winnow::error::ErrMode;
+use winnow::error::{ContextError, ErrMode};
 use winnow::token::{any, literal, none_of, one_of};
 use winnow::{ModalResult, Parser};
 
 use crate::types::*;
 
-// Year related parsers
 pub fn parse_year_four_digit(input: &mut &str) -> ModalResult<FormatToken> {
-    literal(Caseless("yyyy"))
+    repeat::<_, _, (), ContextError, _>(3.., one_of(('y', 'Y')).map(|_| ()))
         .value(FormatToken::YearFourDigit)
         .parse_next(input)
         .map_err(ErrMode::Backtrack)
 }
 
 pub fn parse_year_two_digit(input: &mut &str) -> ModalResult<FormatToken> {
-    literal(Caseless("yy"))
+    repeat::<_, _, (), ContextError, _>(1..3, one_of(('y', 'Y')).map(|_| ()))
         .value(FormatToken::YearTwoDigit)
         .parse_next(input)
         .map_err(ErrMode::Backtrack)
 }
 
-// Month related parsers
 pub fn parse_month_letter(input: &mut &str) -> ModalResult<FormatToken> {
     literal(Caseless("mmmmm"))
         .value(FormatToken::MonthLetter)
@@ -29,7 +27,15 @@ pub fn parse_month_letter(input: &mut &str) -> ModalResult<FormatToken> {
         .map_err(ErrMode::Backtrack)
 }
 
+pub fn parse_month_full_name_long(input: &mut &str) -> ModalResult<FormatToken> {
+    repeat::<_, _, (), ContextError, _>(6.., one_of(('m', 'M')).map(|_| ()))
+        .value(FormatToken::MonthFullName)
+        .parse_next(input)
+        .map_err(ErrMode::Backtrack)
+}
+
 pub fn parse_month_full_name(input: &mut &str) -> ModalResult<FormatToken> {
+    // mmmm or mmm.. (n>5)
     literal(Caseless("mmmm"))
         .value(FormatToken::MonthFullName)
         .parse_next(input)
@@ -57,9 +63,8 @@ pub fn parse_month_or_minute_single(input: &mut &str) -> ModalResult<FormatToken
         .map_err(ErrMode::Backtrack)
 }
 
-// Day related parsers
 pub fn parse_day_full_name(input: &mut &str) -> ModalResult<FormatToken> {
-    literal(Caseless("dddd"))
+    repeat::<_, _, (), ContextError, _>(4.., one_of(('d', 'D')).map(|_| ()))
         .value(FormatToken::WeekdayFullName)
         .parse_next(input)
         .map_err(ErrMode::Backtrack)
@@ -88,7 +93,7 @@ pub fn parse_day_single(input: &mut &str) -> ModalResult<FormatToken> {
 
 // Time related parsers
 pub fn parse_hour_padded(input: &mut &str) -> ModalResult<FormatToken> {
-    literal(Caseless("hh"))
+    repeat::<_, _, (), ContextError, _>(2.., one_of(('h', 'H')).map(|_| ()))
         .value(FormatToken::Hour12Or24Padded)
         .parse_next(input)
         .map_err(ErrMode::Backtrack)
@@ -102,7 +107,7 @@ pub fn parse_hour_single(input: &mut &str) -> ModalResult<FormatToken> {
 }
 
 pub fn parse_second_padded(input: &mut &str) -> ModalResult<FormatToken> {
-    literal(Caseless("ss"))
+    repeat::<_, _, (), ContextError, _>(2.., one_of(('s', 'S')).map(|_| ()))
         .value(FormatToken::SecondNumPadded)
         .parse_next(input)
         .map_err(ErrMode::Backtrack)
@@ -135,36 +140,45 @@ pub fn parse_a_p(input: &mut &str) -> ModalResult<FormatToken> {
 
 // Elapsed time parsers
 pub fn parse_elapsed_hours(input: &mut &str) -> ModalResult<FormatToken> {
-    delimited(
-        literal(Caseless("[")),
-        literal(Caseless("h")),
-        literal(Caseless("]")),
-    )
-    .value(FormatToken::ElapsedHours)
-    .parse_next(input)
-    .map_err(ErrMode::Backtrack)
+    delimited(literal("["), literal(Caseless("h")), literal("]"))
+        .value(FormatToken::ElapsedHours)
+        .parse_next(input)
+        .map_err(ErrMode::Backtrack)
 }
 
 pub fn parse_elapsed_minutes(input: &mut &str) -> ModalResult<FormatToken> {
-    delimited(
-        literal(Caseless("[")),
-        literal(Caseless("m")),
-        literal(Caseless("]")),
-    )
-    .value(FormatToken::ElapsedMinutes)
-    .parse_next(input)
-    .map_err(ErrMode::Backtrack)
+    delimited(literal("["), literal(Caseless("m")), literal("]"))
+        .value(FormatToken::ElapsedMinutes)
+        .parse_next(input)
+        .map_err(ErrMode::Backtrack)
 }
 
 pub fn parse_elapsed_seconds(input: &mut &str) -> ModalResult<FormatToken> {
-    delimited(
-        literal(Caseless("[")),
-        literal(Caseless("s")),
-        literal(Caseless("]")),
-    )
-    .value(FormatToken::ElapsedSeconds)
-    .parse_next(input)
-    .map_err(ErrMode::Backtrack)
+    delimited(literal("["), literal(Caseless("s")), literal("]"))
+        .value(FormatToken::ElapsedSeconds)
+        .parse_next(input)
+        .map_err(ErrMode::Backtrack)
+}
+
+pub fn parse_elapsed_hours_padded(input: &mut &str) -> ModalResult<FormatToken> {
+    delimited(literal("["), literal(Caseless("hh")), literal("]"))
+        .value(FormatToken::ElapsedHoursPadded)
+        .parse_next(input)
+        .map_err(ErrMode::Backtrack)
+}
+
+pub fn parse_elapsed_minutes_padded(input: &mut &str) -> ModalResult<FormatToken> {
+    delimited(literal("["), literal(Caseless("mm")), literal("]"))
+        .value(FormatToken::ElapsedMinutesPadded)
+        .parse_next(input)
+        .map_err(ErrMode::Backtrack)
+}
+
+pub fn parse_elapsed_seconds_padded(input: &mut &str) -> ModalResult<FormatToken> {
+    delimited(literal("["), literal(Caseless("ss")), literal("]"))
+        .value(FormatToken::ElapsedSecondsPadded)
+        .parse_next(input)
+        .map_err(ErrMode::Backtrack)
 }
 
 // Number format parsers
@@ -203,8 +217,15 @@ pub fn parse_thousands_separator(input: &mut &str) -> ModalResult<FormatToken> {
         .map_err(ErrMode::Backtrack)
 }
 
+pub fn parse_literal_percentage_sign(input: &mut &str) -> ModalResult<FormatToken> {
+    literal("%%")
+        .value(FormatToken::LiteralChar('%'))
+        .parse_next(input)
+        .map_err(ErrMode::Backtrack)
+}
+
 pub fn parse_percentage(input: &mut &str) -> ModalResult<FormatToken> {
-    literal("%")
+    literal('%')
         .value(FormatToken::Percentage)
         .parse_next(input)
         .map_err(ErrMode::Backtrack)

@@ -15,19 +15,26 @@ pub fn parse_section_tokens() -> impl FnMut(&mut &str) -> ModalResult<Vec<Format
         let mut parts: Vec<FormatToken> = vec![];
         while !input.is_empty() && !lookahead_for_section_separator(input) {
             let date_tokens = alt((
-                parse_year_four_digit,
-                parse_year_two_digit,
-                parse_month_letter,    // mmmmm
-                parse_month_full_name, // mmmm
-                parse_month_abbr,      // mmm
-                // mm and m are handled after more specific time tokens to help ambiguity if possible
-                parse_day_full_name, // dddd
-                parse_day_abbr,      // ddd
-                parse_day_padded,    // dd
-                parse_day_single,    // d
+                parse_year_four_digit,      // Then yyyy
+                parse_year_two_digit,       // Then yy
+                parse_month_full_name_long, // Then mmmmmm
+                parse_month_letter,         // Then mmmmm
+                parse_month_full_name,      // Then mmmm
+                parse_month_abbr,           // Then mmm
+                // mm and m are handled after more specific t
+                parse_day_full_name, // Then dddd
+                parse_day_abbr,      // Then ddd
+                parse_day_padded,    // Then dd
+                parse_day_single,    // Then d
             ));
 
             let time_tokens = alt((
+                parse_elapsed_hours_padded,   // [hh] (must be before [h])
+                parse_elapsed_minutes_padded, // [mm] (must be before [m])
+                parse_elapsed_seconds_padded, // [ss] (must be before [s])
+                parse_elapsed_hours,          // [h]
+                parse_elapsed_minutes,        // [m]
+                parse_elapsed_seconds,        // [s]
                 parse_hour_padded,            // hh
                 parse_second_padded,          // ss (try before single m/s)
                 parse_month_or_minute_padded, // mm (general, resolved later)
@@ -36,9 +43,6 @@ pub fn parse_section_tokens() -> impl FnMut(&mut &str) -> ModalResult<Vec<Format
                 parse_month_or_minute_single, // m (general, resolved later)
                 parse_am_pm,
                 parse_a_p,
-                parse_elapsed_hours,
-                parse_elapsed_minutes,
-                parse_elapsed_seconds,
             ));
 
             let number_tokens = alt((
@@ -47,6 +51,7 @@ pub fn parse_section_tokens() -> impl FnMut(&mut &str) -> ModalResult<Vec<Format
                 parse_digit_or_space,
                 parse_decimal_point,
                 parse_thousands_separator,
+                parse_literal_percentage_sign,
                 parse_percentage,
                 parse_locale_currency_symbol,
                 parse_exponential,
@@ -264,44 +269,71 @@ pub fn resolve_month_minute_ambiguity_in_section(tokens: &mut Vec<FormatToken>) 
         if is_m_token {
             let mut treat_as_minute = false;
 
-            // Rule 1: If preceded by h or hh (e.g., h:mm, hh:mm)
+            // Rule 1 & 2: Check for preceding h/hh or colon, potentially skipping one space
             if i > 0 {
+                let prev_direct = &tokens[i - 1];
                 if matches!(
-                    tokens[i - 1],
-                    FormatToken::Hour12Or24 | FormatToken::Hour12Or24Padded
+                    prev_direct,
+                    FormatToken::Hour12Or24
+                        | FormatToken::Hour12Or24Padded
+                        | FormatToken::LiteralChar(':')
                 ) {
                     treat_as_minute = true;
-                }
-                // Rule 2: If preceded by a colon (e.g. :mm)
-                // This is often part of h:mm or [h]:mm
-                if matches!(tokens[i - 1], FormatToken::LiteralChar(':')) {
-                    treat_as_minute = true;
+                } else if matches!(prev_direct, FormatToken::LiteralChar(' ')) && i > 1 {
+                    let prev_indirect = &tokens[i - 2];
+                    if matches!(
+                        prev_indirect,
+                        FormatToken::Hour12Or24
+                            | FormatToken::Hour12Or24Padded
+                            | FormatToken::LiteralChar(':')
+                    ) {
+                        treat_as_minute = true;
+                    }
                 }
             }
 
-            // Rule 3: If followed by s or ss (e.g., mm:ss)
-            if !treat_as_minute && (i + 1 < tokens.len()) {
+            // Rule 3 & 4: Check for following s/ss or colon then s/ss, potentially skipping one space
+            if !treat_as_minute && (i + 1) < tokens.len() {
+                let next_direct = &tokens[i + 1];
                 if matches!(
-                    tokens[i + 1],
+                    next_direct,
                     FormatToken::SecondNum | FormatToken::SecondNumPadded
                 ) {
                     treat_as_minute = true;
-                }
-                // Rule 4: If followed by :s or :ss (e.g., mm:s, mm:ss)
-                if i + 2 < tokens.len()
-                    && matches!(tokens[i + 1], FormatToken::LiteralChar(':'))
-                    && matches!(
-                        tokens[i + 2],
-                        FormatToken::SecondNum | FormatToken::SecondNumPadded
-                    )
+                } else if matches!(next_direct, FormatToken::LiteralChar(':'))
+                    && (i + 2) < tokens.len()
                 {
-                    treat_as_minute = true;
+                    let token_after_colon = &tokens[i + 2];
+                    if matches!(
+                        token_after_colon,
+                        FormatToken::SecondNum | FormatToken::SecondNumPadded
+                    ) {
+                        treat_as_minute = true;
+                    }
+                } else if matches!(next_direct, FormatToken::LiteralChar(' '))
+                    && (i + 2) < tokens.len()
+                {
+                    let next_indirect = &tokens[i + 2];
+                    if matches!(
+                        next_indirect,
+                        FormatToken::SecondNum | FormatToken::SecondNumPadded
+                    ) {
+                        treat_as_minute = true;
+                    } else if matches!(next_indirect, FormatToken::LiteralChar(':'))
+                        && (i + 3) < tokens.len()
+                    {
+                        let token_after_colon_indirect = &tokens[i + 3];
+                        if matches!(
+                            token_after_colon_indirect,
+                            FormatToken::SecondNum | FormatToken::SecondNumPadded
+                        ) {
+                            treat_as_minute = true;
+                        }
+                    }
                 }
             }
 
-            // Rule 5: If AM/PM token is present anywhere in the section, 'm' or 'mm' are likely minutes.
-            // This rule might be too broad if 'mm' is for month in 'yyyy/mm/dd hh:mm AM/PM'.
-            // We need to be careful here. Let's prioritize direct neighbor context first.
+            // Rule 5: AM/PM rule (original logic)
             if !treat_as_minute {
                 let section_has_ampm = tokens
                     .iter()
