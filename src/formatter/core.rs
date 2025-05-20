@@ -3,6 +3,8 @@ use crate::formatter::exponential;
 use crate::formatter::text;
 use crate::types::{FormatSection, FormatToken, LocaleSettings};
 
+use crate::formatter::empty_section;
+
 /// Format a numeric value using the specified format section
 pub(super) fn format_value(
     original_value_for_sign: f64,
@@ -11,6 +13,11 @@ pub(super) fn format_value(
     locale: &LocaleSettings,
     is_positive_section_fallback_for_negative: bool, // True if positive_section is used for a negative original_value
 ) -> String {
+    // Handle completely empty section (like in ;;;)
+    if empty_section::is_empty_section(section.tokens.len()) {
+        return empty_section::format_empty_section();
+    }
+
     // Handle empty format string as General
     if section.tokens.is_empty() {
         if original_value_for_sign.is_nan() {
@@ -280,6 +287,24 @@ pub(super) fn format_value(
                 FormatToken::QuotedText(text) => result.push_str(text),
                 FormatToken::CurrencySymbolLocaleDefault => {
                     result.push_str(&locale.currency_symbol);
+                }
+                FormatToken::CurrencySymbolLocalePrefixed(value) => {
+                    // Parse the combined value (prefix:locale_code)
+                    if let Some((prefix, locale_code)) = value.split_once(':') {
+                        // Try to get locale-specific settings
+                        // 检查区域代码是否有效，如果有效就使用前缀
+                        if crate::locale::get_locale_settings_for_excel_code(locale_code).is_some()
+                        {
+                            // 使用前缀作为货币符号
+                            result.push_str(prefix);
+                        } else {
+                            // Fallback: just use the provided prefix
+                            result.push_str(prefix);
+                        }
+                    } else {
+                        // Simple case - just use the value directly
+                        result.push_str(value);
+                    }
                 }
                 _ => {}
             }

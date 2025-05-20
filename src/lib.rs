@@ -1,7 +1,11 @@
 pub mod parser;
 pub use parser::parse_number_format;
 pub mod formatter;
+pub mod locale;
 pub mod types;
+
+// Re-export commonly used locale functions
+pub use locale::{get_locale_settings, get_locale_settings_by_code};
 
 use types::LocaleSettings;
 /// Formats a number according to a parsed format string and locale settings.

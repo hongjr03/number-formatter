@@ -40,6 +40,23 @@ pub(super) fn format_text_with_section(
             FormatToken::CurrencySymbolLocaleDefault => {
                 result.push_str(&locale.currency_symbol);
             }
+            FormatToken::CurrencySymbolLocalePrefixed(value) => {
+                // Parse the combined value (prefix:locale_code)
+                if let Some((prefix, locale_code)) = value.split_once(':') {
+                    // Try to get locale-specific settings
+                    // 检查区域代码是否有效，如果有效就使用前缀
+                    if crate::locale::get_locale_settings_for_excel_code(locale_code).is_some() {
+                        // 使用前缀作为货币符号
+                        result.push_str(prefix);
+                    } else {
+                        // Fallback: just use the provided prefix
+                        result.push_str(prefix);
+                    }
+                } else {
+                    // Simple case - just use the value directly
+                    result.push_str(value);
+                }
+            }
             _ => {
                 // Ignore other tokens like Fill, SkipWidth, numeric/date placeholders in text section
             }

@@ -1,0 +1,928 @@
+# Mapping from Microsoft locale codes to BCP-47 language tags
+# From https://github.com/borgar/numfmt
+
+[code_1025]
+code = 1025
+locale = "ar_SA"
+description = "Arabic - Saudi Arabia"
+
+[code_1026]
+code = 1026
+locale = "bg"
+description = "Bulgarian"
+
+[code_1027]
+code = 1027
+locale = "ca"
+description = "Catalan"
+
+[code_1028]
+code = 1028
+locale = "zh_TW"
+description = "Chinese - Taiwan"
+
+[code_1029]
+code = 1029
+locale = "cs"
+description = "Czech"
+
+[code_1030]
+code = 1030
+locale = "da"
+description = "Danish"
+
+[code_1031]
+code = 1031
+locale = "de_DE"
+description = "German - Germany"
+
+[code_1032]
+code = 1032
+locale = "el"
+description = "Greek"
+
+[code_1033]
+code = 1033
+locale = "en_US"
+description = "English - United States"
+
+[code_1034]
+code = 1034
+locale = "es_ES"
+description = "Spanish - Spain (Traditional)"
+
+[code_1035]
+code = 1035
+locale = "fi"
+description = "Finnish"
+
+[code_1036]
+code = 1036
+locale = "fr_FR"
+description = "French - France"
+
+[code_1037]
+code = 1037
+locale = "he"
+description = "Hebrew"
+
+[code_1038]
+code = 1038
+locale = "hu"
+description = "Hungarian"
+
+[code_1039]
+code = 1039
+locale = "is"
+description = "Icelandic"
+
+[code_1040]
+code = 1040
+locale = "it_IT"
+description = "Italian - Italy"
+
+[code_1041]
+code = 1041
+locale = "ja"
+description = "Japanese"
+
+[code_1042]
+code = 1042
+locale = "ko"
+description = "Korean"
+
+[code_1043]
+code = 1043
+locale = "nl_NL"
+description = "Dutch - Netherlands"
+
+[code_1044]
+code = 1044
+locale = "no_NO"
+description = "Norwegian - Bokml"
+
+[code_1045]
+code = 1045
+locale = "pl"
+description = "Polish"
+
+[code_1046]
+code = 1046
+locale = "pt_BR"
+description = "Portuguese - Brazil"
+
+[code_1047]
+code = 1047
+locale = "rm"
+description = "Raeto-Romance"
+
+[code_1048]
+code = 1048
+locale = "ro_RO"
+description = "Romanian - Romania"
+
+[code_1049]
+code = 1049
+locale = "ru"
+description = "Russian"
+
+[code_1050]
+code = 1050
+locale = "hr"
+description = "Croatian"
+
+[code_1051]
+code = 1051
+locale = "sk"
+description = "Slovak"
+
+[code_1052]
+code = 1052
+locale = "sq"
+description = "Albanian"
+
+[code_1053]
+code = 1053
+locale = "sv_SE"
+description = "Swedish - Sweden"
+
+[code_1054]
+code = 1054
+locale = "th"
+description = "Thai"
+
+[code_1055]
+code = 1055
+locale = "tr"
+description = "Turkish"
+
+[code_1056]
+code = 1056
+locale = "ur"
+description = "Urdu"
+
+[code_1057]
+code = 1057
+locale = "id"
+description = "Indonesian"
+
+[code_1058]
+code = 1058
+locale = "uk"
+description = "Ukrainian"
+
+[code_1059]
+code = 1059
+locale = "be"
+description = "Belarusian"
+
+[code_1060]
+code = 1060
+locale = "sl"
+description = "Slovenian"
+
+[code_1061]
+code = 1061
+locale = "et"
+description = "Estonian"
+
+[code_1062]
+code = 1062
+locale = "lv"
+description = "Latvian"
+
+[code_1063]
+code = 1063
+locale = "lt"
+description = "Lithuanian"
+
+[code_1064]
+code = 1064
+locale = "tg"
+description = "Tajik"
+
+[code_1065]
+code = 1065
+locale = "fa"
+description = "Farsi - Persian"
+
+[code_1066]
+code = 1066
+locale = "vi"
+description = "Vietnamese"
+
+[code_1067]
+code = 1067
+locale = "hy"
+description = "Armenian"
+
+[code_1068]
+code = 1068
+locale = "az_AZ"
+description = "Azeri - Latin"
+
+[code_1069]
+code = 1069
+locale = "eu"
+description = "Basque"
+
+[code_1070]
+code = 1070
+locale = "sb"
+description = "Sorbian"
+
+[code_1071]
+code = 1071
+locale = "mk"
+description = "FYRO Macedonia"
+
+[code_1072]
+code = 1072
+locale = "st"
+description = "Sesotho (Sutu)"
+
+[code_1073]
+code = 1073
+locale = "ts"
+description = "Tsonga"
+
+[code_1074]
+code = 1074
+locale = "tn"
+description = "Setsuana"
+
+[code_1075]
+code = 1075
+locale = "ve"
+description = "Venda"
+
+[code_1076]
+code = 1076
+locale = "xh"
+description = "Xhosa"
+
+[code_1078]
+code = 1078
+locale = "af"
+description = "Afrikaans"
+
+[code_1079]
+code = 1079
+locale = "ka"
+description = "Georgian"
+
+[code_1080]
+code = 1080
+locale = "fo"
+description = "Faroese"
+
+[code_1081]
+code = 1081
+locale = "hi"
+description = "Hindi"
+
+[code_1082]
+code = 1082
+locale = "mt"
+description = "Maltese"
+
+[code_1083]
+code = 1083
+locale = "se"
+description = "Sami Lappish"
+
+[code_1084]
+code = 1084
+locale = "gd"
+description = "Gaelic - Scotland"
+
+[code_1085]
+code = 1085
+locale = "yi"
+description = "Yiddish"
+
+[code_1086]
+code = 1086
+locale = "ms_MY"
+description = "Malay - Malaysia"
+
+[code_1087]
+code = 1087
+locale = "kk"
+description = "Kazakh"
+
+[code_1088]
+code = 1088
+locale = "ky"
+description = "Kyrgyz - Cyrillic"
+
+[code_1089]
+code = 1089
+locale = "sw"
+description = "Swahili"
+
+[code_1090]
+code = 1090
+locale = "tk"
+description = "Turkmen"
+
+[code_1091]
+code = 1091
+locale = "uz_UZ"
+description = "Uzbek - Latin"
+
+[code_1092]
+code = 1092
+locale = "tt"
+description = "Tatar"
+
+[code_1093]
+code = 1093
+locale = "bn_IN"
+description = "Bengali - India"
+
+[code_1094]
+code = 1094
+locale = "pa"
+description = "Punjabi"
+
+[code_1095]
+code = 1095
+locale = "gu"
+description = "Gujarati"
+
+[code_1096]
+code = 1096
+locale = "or"
+description = "Oriya"
+
+[code_1097]
+code = 1097
+locale = "ta"
+description = "Tamil"
+
+[code_1098]
+code = 1098
+locale = "te"
+description = "Telugu"
+
+[code_1099]
+code = 1099
+locale = "kn"
+description = "Kannada"
+
+[code_1100]
+code = 1100
+locale = "ml"
+description = "Malayalam"
+
+[code_1101]
+code = 1101
+locale = "as"
+description = "Assamese"
+
+[code_1102]
+code = 1102
+locale = "mr"
+description = "Marathi"
+
+[code_1103]
+code = 1103
+locale = "sa"
+description = "Sanskrit"
+
+[code_1104]
+code = 1104
+locale = "mn"
+description = "Mongolian"
+
+[code_1105]
+code = 1105
+locale = "bo"
+description = "Tibetan"
+
+[code_1106]
+code = 1106
+locale = "cy"
+description = "Welsh"
+
+[code_1107]
+code = 1107
+locale = "km"
+description = "Khmer"
+
+[code_1108]
+code = 1108
+locale = "lo"
+description = "Lao"
+
+[code_1109]
+code = 1109
+locale = "my"
+description = "Burmese"
+
+[code_1110]
+code = 1110
+locale = "gl"
+description = "Galician"
+
+[code_1111]
+code = 1111
+locale = "kok"
+description = "Konkani"
+
+[code_1112]
+code = 1112
+locale = "mni"
+description = "Manipuri"
+
+[code_1113]
+code = 1113
+locale = "sd"
+description = "Sindhi"
+
+[code_1114]
+code = 1114
+locale = "syc"
+description = "Syriac"
+
+[code_1115]
+code = 1115
+locale = "si"
+description = "Sinhala; Sinhalese"
+
+[code_1118]
+code = 1118
+locale = "am"
+description = "Amharic"
+
+[code_1120]
+code = 1120
+locale = "ks"
+description = "Kashmiri"
+
+[code_1121]
+code = 1121
+locale = "ne"
+description = "Nepali"
+
+[code_1122]
+code = 1122
+locale = "fy_NL"
+description = "Frisian - Netherlands"
+
+[code_1124]
+code = 1124
+locale = "fil"
+description = "Filipino"
+
+[code_1125]
+code = 1125
+locale = "dv"
+description = "Divehi; Dhivehi; Maldivian"
+
+[code_1126]
+code = 1126
+locale = "bin"
+description = "Edo"
+
+[code_1136]
+code = 1136
+locale = "ig_NG"
+description = "Igbo - Nigeria"
+
+[code_1140]
+code = 1140
+locale = "gn"
+description = "Guarani - Paraguay"
+
+[code_1142]
+code = 1142
+locale = "la"
+description = "Latin"
+
+[code_1143]
+code = 1143
+locale = "so"
+description = "Somali"
+
+[code_1153]
+code = 1153
+locale = "mi"
+description = "Maori"
+
+[code_1279]
+code = 1279
+locale = "en"
+description = "HID (Human Interface Device)"
+
+[code_2049]
+code = 2049
+locale = "ar_IQ"
+description = "Arabic - Iraq"
+
+[code_2052]
+code = 2052
+locale = "zh_CN"
+description = "Chinese - China"
+
+[code_2055]
+code = 2055
+locale = "de_CH"
+description = "German - Switzerland"
+
+[code_2057]
+code = 2057
+locale = "en_GB"
+description = "English - Great Britain"
+
+[code_2058]
+code = 2058
+locale = "es_MX"
+description = "Spanish - Mexico"
+
+[code_2060]
+code = 2060
+locale = "fr_BE"
+description = "French - Belgium"
+
+[code_2064]
+code = 2064
+locale = "it_CH"
+description = "Italian - Switzerland"
+
+[code_2067]
+code = 2067
+locale = "nl_BE"
+description = "Dutch - Belgium"
+
+[code_2068]
+code = 2068
+locale = "no_NO"
+description = "Norwegian - Nynorsk"
+
+[code_2070]
+code = 2070
+locale = "pt_PT"
+description = "Portuguese - Portugal"
+
+[code_2072]
+code = 2072
+locale = "ro_MO"
+description = "Romanian - Moldova"
+
+[code_2073]
+code = 2073
+locale = "ru_MO"
+description = "Russian - Moldova"
+
+[code_2074]
+code = 2074
+locale = "sr_SP"
+description = "Serbian - Latin"
+
+[code_2077]
+code = 2077
+locale = "sv_FI"
+description = "Swedish - Finland"
+
+[code_2092]
+code = 2092
+locale = "az_AZ"
+description = "Azeri - Cyrillic"
+
+[code_2108]
+code = 2108
+locale = "gd_IE"
+description = "Gaelic - Ireland"
+
+[code_2110]
+code = 2110
+locale = "ms_BN"
+description = "Malay - Brunei"
+
+[code_2115]
+code = 2115
+locale = "uz_UZ"
+description = "Uzbek - Cyrillic"
+
+[code_2117]
+code = 2117
+locale = "bn"
+description = "Bengali - Bangladesh"
+
+[code_2128]
+code = 2128
+locale = "mn"
+description = "Mongolian"
+
+[code_3073]
+code = 3073
+locale = "ar_EG"
+description = "Arabic - Egypt"
+
+[code_3076]
+code = 3076
+locale = "zh_HK"
+description = "Chinese - Hong Kong SAR"
+
+[code_3079]
+code = 3079
+locale = "de_AT"
+description = "German - Austria"
+
+[code_3081]
+code = 3081
+locale = "en_AU"
+description = "English - Australia"
+
+[code_3084]
+code = 3084
+locale = "fr_CA"
+description = "French - Canada"
+
+[code_3098]
+code = 3098
+locale = "sr_SP"
+description = "Serbian - Cyrillic"
+
+[code_4097]
+code = 4097
+locale = "ar_LY"
+description = "Arabic - Libya"
+
+[code_4100]
+code = 4100
+locale = "zh_SG"
+description = "Chinese - Singapore"
+
+[code_4103]
+code = 4103
+locale = "de_LU"
+description = "German - Luxembourg"
+
+[code_4105]
+code = 4105
+locale = "en_CA"
+description = "English - Canada"
+
+[code_4106]
+code = 4106
+locale = "es_GT"
+description = "Spanish - Guatemala"
+
+[code_4108]
+code = 4108
+locale = "fr_CH"
+description = "French - Switzerland"
+
+[code_5121]
+code = 5121
+locale = "ar_DZ"
+description = "Arabic - Algeria"
+
+[code_5124]
+code = 5124
+locale = "zh_MO"
+description = "Chinese - Macau SAR"
+
+[code_5127]
+code = 5127
+locale = "de_LI"
+description = "German - Liechtenstein"
+
+[code_5129]
+code = 5129
+locale = "en_NZ"
+description = "English - New Zealand"
+
+[code_5130]
+code = 5130
+locale = "es_CR"
+description = "Spanish - Costa Rica"
+
+[code_5132]
+code = 5132
+locale = "fr_LU"
+description = "French - Luxembourg"
+
+[code_5146]
+code = 5146
+locale = "bs"
+description = "Bosnian"
+
+[code_6145]
+code = 6145
+locale = "ar_MA"
+description = "Arabic - Morocco"
+
+[code_6153]
+code = 6153
+locale = "en_IE"
+description = "English - Ireland"
+
+[code_6154]
+code = 6154
+locale = "es_PA"
+description = "Spanish - Panama"
+
+[code_6156]
+code = 6156
+locale = "fr_MC"
+description = "French - Monaco"
+
+[code_7169]
+code = 7169
+locale = "ar_TN"
+description = "Arabic - Tunisia"
+
+[code_7177]
+code = 7177
+locale = "en_ZA"
+description = "English - Southern Africa"
+
+[code_7178]
+code = 7178
+locale = "es_DO"
+description = "Spanish - Dominican Republic"
+
+[code_7180]
+code = 7180
+locale = "fr"
+description = "French - West Indies"
+
+[code_8193]
+code = 8193
+locale = "ar_OM"
+description = "Arabic - Oman"
+
+[code_8201]
+code = 8201
+locale = "en_JM"
+description = "English - Jamaica"
+
+[code_8202]
+code = 8202
+locale = "es_VE"
+description = "Spanish - Venezuela"
+
+[code_9217]
+code = 9217
+locale = "ar_YE"
+description = "Arabic - Yemen"
+
+[code_9225]
+code = 9225
+locale = "en_CB"
+description = "English - Caribbean"
+
+[code_9226]
+code = 9226
+locale = "es_CO"
+description = "Spanish - Colombia"
+
+[code_9228]
+code = 9228
+locale = "fr_CG"
+description = "French - Congo"
+
+[code_10241]
+code = 10241
+locale = "ar_SY"
+description = "Arabic - Syria"
+
+[code_10249]
+code = 10249
+locale = "en_BZ"
+description = "English - Belize"
+
+[code_10250]
+code = 10250
+locale = "es_PE"
+description = "Spanish - Peru"
+
+[code_10252]
+code = 10252
+locale = "fr_SN"
+description = "French - Senegal"
+
+[code_11265]
+code = 11265
+locale = "ar_JO"
+description = "Arabic - Jordan"
+
+[code_11273]
+code = 11273
+locale = "en_TT"
+description = "English - Trinidad"
+
+[code_11274]
+code = 11274
+locale = "es_AR"
+description = "Spanish - Argentina"
+
+[code_11276]
+code = 11276
+locale = "fr_CM"
+description = "French - Cameroon"
+
+[code_12289]
+code = 12289
+locale = "ar_LB"
+description = "Arabic - Lebanon"
+
+[code_12297]
+code = 12297
+locale = "en_ZW"
+description = "English - Zimbabwe"
+
+[code_12298]
+code = 12298
+locale = "es_EC"
+description = "Spanish - Ecuador"
+
+[code_12300]
+code = 12300
+locale = "fr_CI"
+description = "French - Cote d'Ivoire"
+
+[code_13313]
+code = 13313
+locale = "ar_KW"
+description = "Arabic - Kuwait"
+
+[code_13321]
+code = 13321
+locale = "en_PH"
+description = "English - Phillippines"
+
+[code_13322]
+code = 13322
+locale = "es_CL"
+description = "Spanish - Chile"
+
+[code_13324]
+code = 13324
+locale = "fr_ML"
+description = "French - Mali"
+
+[code_14337]
+code = 14337
+locale = "ar_AE"
+description = "Arabic - United Arab Emirates"
+
+[code_14346]
+code = 14346
+locale = "es_UY"
+description = "Spanish - Uruguay"
+
+[code_14348]
+code = 14348
+locale = "fr_MA"
+description = "French - Morocco"
+
+[code_15361]
+code = 15361
+locale = "ar_BH"
+description = "Arabic - Bahrain"
+
+[code_15370]
+code = 15370
+locale = "es_PY"
+description = "Spanish - Paraguay"
+
+[code_16385]
+code = 16385
+locale = "ar_QA"
+description = "Arabic - Qatar"
+
+[code_16393]
+code = 16393
+locale = "en_IN"
+description = "English - India"
+
+[code_16394]
+code = 16394
+locale = "es_BO"
+description = "Spanish - Bolivia"
+
+[code_17418]
+code = 17418
+locale = "es_SV"
+description = "Spanish - El Salvador"
+
+[code_18442]
+code = 18442
+locale = "es_HN"
+description = "Spanish - Honduras"
+
+[code_19466]
+code = 19466
+locale = "es_NI"
+description = "Spanish - Nicaragua"
+
+[code_20490]
+code = 20490
+locale = "es_PR"
+description = "Spanish - Puerto Rico"
+

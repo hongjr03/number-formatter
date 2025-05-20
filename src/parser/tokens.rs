@@ -64,14 +64,17 @@ pub fn parse_month_or_minute_single(input: &mut &str) -> ModalResult<FormatToken
 }
 
 pub fn parse_day_full_name(input: &mut &str) -> ModalResult<FormatToken> {
-    repeat::<_, _, (), ContextError, _>(4.., one_of(('d', 'D')).map(|_| ()))
-        .value(FormatToken::WeekdayFullName)
-        .parse_next(input)
-        .map_err(ErrMode::Backtrack)
+    alt((
+        repeat::<_, _, (), ContextError, _>(4.., one_of(('d', 'D')).map(|_| ())),
+        repeat::<_, _, (), ContextError, _>(4.., one_of(('a', 'A')).map(|_| ())),
+    ))
+    .value(FormatToken::WeekdayFullName)
+    .parse_next(input)
+    .map_err(ErrMode::Backtrack)
 }
 
 pub fn parse_day_abbr(input: &mut &str) -> ModalResult<FormatToken> {
-    literal(Caseless("ddd"))
+    alt((literal(Caseless("ddd")), literal(Caseless("aaa"))))
         .value(FormatToken::WeekdayAbbr)
         .parse_next(input)
         .map_err(ErrMode::Backtrack)
@@ -305,8 +308,68 @@ pub fn parse_color(input: &mut &str) -> ModalResult<FormatToken> {
 }
 
 pub fn parse_locale_currency_symbol(input: &mut &str) -> ModalResult<FormatToken> {
-    literal('¤')
-        .value(FormatToken::CurrencySymbolLocaleDefault)
+    alt((
+        literal('¤').value(FormatToken::CurrencySymbolLocaleDefault),
+        parse_excel_locale_currency_format,
+    ))
+    .parse_next(input)
+}
+
+/// Parse Excel-style locale currency format like [$-409] or [$-zh-TW] or [$US-409]
+pub fn parse_excel_locale_currency_format(input: &mut &str) -> ModalResult<FormatToken> {
+    // Parse the opening sequence [$
+    literal("[$").parse_next(input)?;
+
+    // Check for currency prefix like US before the - sign
+    let mut currency_prefix = String::new();
+    let original_input = *input;
+
+    // Read characters until we hit a dash
+    while !input.is_empty() && !input.starts_with('-') {
+        let c = input.chars().next().unwrap();
+        currency_prefix.push(c);
+        *input = &input[c.len_utf8()..];
+    }
+
+    // Parse the dash
+    if literal::<_, _, ContextError>("-")
         .parse_next(input)
-        .map_err(ErrMode::Backtrack)
+        .is_err()
+    {
+        // No dash found, restore input and clear prefix
+        *input = original_input;
+        currency_prefix.clear();
+    }
+
+    // Now parse the locale code which can be:
+    // 1. A numeric code like 409
+    // 2. A hex code like 1C or 5E
+    // 3. A language code like zh-TW
+    let mut locale_code = String::new();
+
+    // Consume characters until we hit the closing bracket
+    while !input.is_empty() && !input.starts_with(']') {
+        // Take one character at a time
+        let c = input.chars().next().unwrap();
+        locale_code.push(c);
+        *input = &input[c.len_utf8()..];
+    }
+
+    // Parse the closing bracket
+    literal("]").parse_next(input)?;
+
+    // Generate the full locale code for later reference
+    let full_code = format!("[$-{}]", locale_code);
+
+    // Return appropriate token based on whether there's a currency prefix
+    if !currency_prefix.is_empty() {
+        // Include both the prefix and the locale code for complete formatting
+        Ok(FormatToken::CurrencySymbolLocalePrefixed(format!(
+            "{}:{}",
+            currency_prefix, full_code
+        )))
+    } else {
+        // Just store the locale code for using the default currency symbol of that locale
+        Ok(FormatToken::CurrencySymbolLocaleDefault)
+    }
 }

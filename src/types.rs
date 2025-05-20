@@ -92,6 +92,8 @@ pub enum FormatToken {
 
     /// Currency symbol for locale-dependent formatting
     CurrencySymbolLocaleDefault,
+    /// Currency symbol with a specific prefix from format like [$US-409]
+    CurrencySymbolLocalePrefixed(String),
     /// Represents the "General" format for numbers
     GeneralNumeric,
 }
